@@ -277,12 +277,14 @@ def main():
 				print 'This %s program support mp3.zing.vn,nhaccuatui.com,nhacso.net' % sys.argv[0]
 				sys.exit(0)
 			music_site.xml_get_data()
-			print 'Downloading......'
 			if not extract:
+				print 'Downloading......'
 				downloader(music_site.link_song,music_site.name_song,music_site.artist_name,save,music_site.ext,tool)
 			else:
+				print 'Extracting.......'
 				fw = open(extract,'a')
-				fw.write(music_site.link_song+'\n')
+				for item in music_site.link_song:
+					fw.write(item+'\n')
 				fw.close()
 	
 # MAIN PROGRAM #
