@@ -189,7 +189,6 @@ def downloader(link_song,name_song,artist_name,path,ext,tool_download=None):
 			download.append(flag)
 			download.append(mp3_file_location)
 			call(download)
-			count+=1
 	else:
 		for item in range(len(name_song)):
 			name_song[item]+=' - '+artist_name[item]+ext[item]
