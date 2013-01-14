@@ -2,7 +2,7 @@
 # -*- encoding: utf-8 -*-
 
 __author__ = "Peter Nguyen"
-__version__ = "3.0 beta 2"
+__version__ = "3.0 beta 1"
 
 import urllib
 import urllib2
@@ -206,7 +206,7 @@ def downloader(link_song,name_song,artist_name,path,ext,tool_download=None):
 			basic_download(link_song[item],mp3file_list[item])   
 
 def usage():
-	print 'Usage ./%s -s <path> -l <link> (-t wget option)'
+	print 'Usage ./%s -s <path> -l <link> (-t wget option)' % sys.argv[0]
 
 def help():
 	print '''
