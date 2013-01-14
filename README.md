@@ -17,3 +17,4 @@ ex:
 	./music_downloader.py -s ~/Musics/Xuan/ -l "http://www.nhaccuatui.com/nghe?M=_CCBim8jAW http://www.nhaccuatui.com/nghe?M=mxuilr6eny"
 download 2 files
 - Support extract url to file text using option -e
+- Addon Support Playing Musics or Videos With VLC
