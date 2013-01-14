@@ -2,7 +2,7 @@
 # -*- encoding: utf-8 -*-
 
 __author__ = "Peter Nguyen"
-__version__ = "3.0 beta"
+__version__ = "3.0 beta 2"
 
 import urllib
 import urllib2
@@ -36,11 +36,10 @@ def show_process(proc_name,bytes_write,file_len):
 		for i in range(1,int((100-current)/2)+1):
 			output+=' '
 		if(current < 100):
-			end_str = '] '+str(current)+'%'
-			output+=end_str
+			end_str = '] '+'{0:.2f}'.format(current)+'%'
 		else:
-			end = '] 100%|Done'
-			output+=end
+			end_str = '] 100%|Done'
+		output+=end_str
 		sys.stdout.write(output)
 	sys.stdout.flush()
 
@@ -49,6 +48,7 @@ def basic_download(url,outfile=''):
 	n = urllib2.urlopen(req)
 	file_len = int(n.info().getheaders('content-length')[0])
 	file_type = n.info().getheaders('content-type')[0]
+	file_type = file_type[len(file_type)-3:len(file_type)]
 	
 	if(os.path.exists(outfile) and os.path.getsize(outfile) == file_len):
 		return 0
@@ -59,7 +59,7 @@ def basic_download(url,outfile=''):
 	start = time.time()
 	while True:
 		show_process(outfile,sum_byte,file_len)
-		bs = 1024*random.randint(10,100)
+		bs = 1024*random.randint(10,256)
 		data = n.read(bs)
 		sum_byte+=len(data)
 		fw.write(data)
@@ -97,8 +97,10 @@ class Mp3Zing :
 		for line in data.read().split('\n'):
 			try:
 				_rem=re.search(r'xmlURL=(.+?)&',line)
+				self.xmllink = _rem.group(1)
 			except AttributeError:
 				pass
+		
 	def xml_get_data(self):
 		xml=urllib.urlopen(self.xmllink)
 		xml_parse=ElementTree.parse(xml)   
@@ -107,8 +109,12 @@ class Mp3Zing :
 			self.name_song.append(unicode(name.text))
 		for artist in xml_parse.findall('.//performer'):
 			self.artist_name.append(unicode(artist.text))
-		for link in xml_parse.findall('.//source'):
-			self.link_song.append(unicode(link.text))
+		if(not xml_parse.findall('.//f480')):
+			for link in xml_parse.findall('.//source'):
+				self.link_song.append(unicode(link.text))
+		else:
+			for link in xml_parse.findall('.//f480'):
+				self.link_song.append(unicode(link.text))
 		
 		for item in self.link_song:
 			ext = item[item.rfind('.'):len(item)]
@@ -172,28 +178,32 @@ def filter_link_mp3(link):
 	return urlparse(link)[1]  
   
 def downloader(link_song,name_song,artist_name,path,ext,tool_download=None):
+	
+	mp3file_list = []
+	
 	if not os.path.isdir(path):
 		os.mkdir(path)
-	
+	for item in range(len(link_song)):
+		name_song[item]+=' - '+artist_name[item]+ext[item]
+		if(path[len(path)-1] != '/'):
+			path+='/'
+		mp3file_list.append(path+name_song[item])
+
 	if(tool_download):
 		if(tool_download == 'wget'):
 			flag='-O'
 		elif(tool_download == 'axel'):
 			flag='-o'
-		    
-		for item in range(len(name_song)):      
+		
+		for item in range(len(link_song)):      
 			download=[tool_download]
-			name_song[item]+=' - '+artist_name[item]+ext[item]
-			mp3_file_location=path+'/'+name_song[item]
 			download.append(link_song[item])
 			download.append(flag)
-			download.append(mp3_file_location)
+			download.append(mp3file_list[item])
 			call(download)
 	else:
-		for item in range(len(name_song)):
-			name_song[item]+=' - '+artist_name[item]+ext[item]
-			mp3_file_location=path+'/'+name_song[item]
-			basic_download(link_song[item],mp3_file_location)   
+		for item in range(len(link_song)):
+			basic_download(link_song[item],mp3file_list[item])   
 
 def usage():
 	print 'Usage ./%s -s <path> -l <link> (-t wget option)'
