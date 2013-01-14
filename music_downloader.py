@@ -2,7 +2,7 @@
 # -*- encoding: utf-8 -*-
 
 __author__ = "Peter Nguyen"
-__version__ = "3.0 beta 1"
+__version__ = "3.0 beta 2"
 
 import urllib
 import urllib2
@@ -13,6 +13,7 @@ import os
 import time
 import getopt
 import random
+import thread
 from xml.etree import ElementTree
 from urlparse import urlparse
 from subprocess import call
@@ -210,19 +211,23 @@ def usage():
 
 def help():
 	print '''
-	-t|--tool : axel,wget,download tools,.....
+	-t|--tool : axel,wget
 	-l|--link : url link list
 	-s|--save : path
+	-e|--extract : path
 	-v|--version : version
 	-h|--help : help
+	
+	* If using option -e, this tool doesn't download files, instead, extracting link file to file text'
 	'''
 def main():
 	support_tools = ['wget','axel']
 	tool = None
 	link = []
 	save = os.getcwd()
+	extract = ''
 	try:
-		opts,args = getopt.getopt(sys.argv[1:],'t:l:s:vh',['tool','link','save','version','help'])
+		opts,args = getopt.getopt(sys.argv[1:],'t:l:s:e:vh',['tool','link','save','extract','version','help'])
 	except getopt.GetoptError as err:
 		usage()
 		print str(err)
@@ -238,6 +243,8 @@ def main():
 			link = variable.split(' ')
 		elif option in ('-s','--save'):
 			save = os.path.expanduser(variable)
+		elif option in ('-e','--extract'):
+			extract = os.path.expanduser(variable)
 		elif option in ('-v','--version'):
 			out = '\tMusic Downloader@Peternguyen - Version : %s'%__version__
 			print '-'*(len(out)+15)
@@ -271,8 +278,16 @@ def main():
 				sys.exit(0)
 			music_site.xml_get_data()
 			print 'Downloading......'
-			downloader(music_site.link_song,music_site.name_song,music_site.artist_name,save,music_site.ext,tool)
+			if not extract:
+				downloader(music_site.link_song,music_site.name_song,music_site.artist_name,save,music_site.ext,tool)
+			else:
+				fw = open(extract,'a')
+				fw.write(music_site.link_song+'\n')
+				fw.close()
 	
 # MAIN PROGRAM #
 if __name__ == '__main__':
-	main()
+	try:
+		main()
+	except KeyboardInterrupt:
+		print 'Download Was Interrupted'
