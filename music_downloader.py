@@ -2,9 +2,8 @@
 # -*- encoding: utf-8 -*-
 
 __author__ = "Peter Nguyen"
-__version__ = "3.0 beta 2"
+__version__ = "3.0 beta 3"
 
-import urllib
 import urllib2
 import re
 import httplib
@@ -14,8 +13,8 @@ import time
 import getopt
 import random
 import thread
+import urlparse
 from xml.etree import ElementTree
-from urlparse import urlparse
 from subprocess import call
 
 hdrs = {
@@ -44,6 +43,7 @@ def show_process(proc_name,bytes_write,file_len):
 		sys.stdout.write(output)
 	sys.stdout.flush()
 
+#update multithreading
 def basic_download(url,outfile=''):
 	req = urllib2.Request(url, headers=hdrs)
 	n = urllib2.urlopen(req)
@@ -60,7 +60,7 @@ def basic_download(url,outfile=''):
 	start = time.time()
 	while True:
 		show_process(outfile,sum_byte,file_len)
-		bs = 1024*random.randint(10,256)
+		bs = 1024*random.randint(64,256)
 		data = n.read(bs)
 		sum_byte+=len(data)
 		fw.write(data)
@@ -71,21 +71,44 @@ def basic_download(url,outfile=''):
 	fw.close()
 	n.close()
 	return 1
-      
-def http(method,url,headers='',params='',):
-        url_parse = urlparse(url)
-        host      = url_parse[1]
-        path      = url_parse[2]
-        query     = url_parse[4]
-        http      = httplib.HTTPConnection(host)
-        if method=='GET':
-                http.request(method,path+'?'+query)
-        elif method =='POST':
-                http.request(method,path,params,headers)
-        res       = http.getresponse()
-        result    = res.read()
-        http.close()
-        return result
+class YouTube:
+  
+	def __init__(self,url,quality,vtype):
+		self.url = url
+		self.quality = quality
+		self.vtype = vtype
+		self.video_link = None
+		self.title = []
+		self.video_type = {
+			'webm':'video/webm',
+			'flv':'video/x-flv',
+			'mp4':'video/mp4',
+			'3gpp':'video/3gpp'
+		}
+
+	def GetLink(self):
+		video_id = urlparse.parse_qs(urlparse.urlparse(self.url).query)['v'][0]
+		req = urllib2.Request('http://www.youtube.com/get_video_info?&video_id='+video_id, headers=hdrs)
+		d = urllib2.urlopen(req).read()
+		self.title.append(urlparse.parse_qs(urlparse.unquote(d))['title'][0])
+		parse = urlparse.parse_qs(d.decode('utf-8'))
+		streams = parse['url_encoded_fmt_stream_map'][0].split(',')
+		if self.vtype and self.quality:
+			self.video_link = []
+			for i in range(len(streams)):
+				read_stream = urlparse.parse_qs(streams[i])
+				type = read_stream['type'][0].split(';')[0]
+				quality = read_stream['quality'][0]
+				if type == self.video_type[self.vtype] and quality == self.quality:
+					self.video_link.append(read_stream['url'][0]+'&signature='+read_stream['sig'][0])
+					break
+		if not self.video_link:
+			self.video_link = dict()
+			for i in range(len(streams)):
+				read_stream = urlparse.parse_qs(streams[i])
+				type = read_stream['type'][0].split(';')[0]
+				quality = read_stream['quality'][0]
+				self.video_link.update({type:quality})
 
 class Mp3Zing :
 	def __init__ (self,url):
@@ -94,7 +117,7 @@ class Mp3Zing :
 		self.artist_name=[]
 		self.link_song=[]
 		self.ext=[]
-		data=urllib.urlopen(self.url)
+		data=urllib2.urlopen(self.url)
 		for line in data.read().split('\n'):
 			try:
 				_rem=re.search(r'xmlURL=(.+?)&',line)
@@ -103,7 +126,7 @@ class Mp3Zing :
 				pass
 		
 	def xml_get_data(self):
-		xml=urllib.urlopen(self.xmllink)
+		xml=urllib2.urlopen(self.xmllink)
 		xml_parse=ElementTree.parse(xml)   
 		
 		for name in xml_parse.findall('.//title'):
@@ -128,7 +151,7 @@ class NhacCuaTui:
 		self.link_song=[]
 		self.ext = []
 		
-		data = urllib.urlopen(url)
+		data = urllib2.urlopen(url)
 
 		for line in data.read().split('\n'):
 			try:
@@ -137,8 +160,8 @@ class NhacCuaTui:
 				break
 			except AttributeError:
 				pass
-		      
-		self.result = http('GET',playlist,hdrs)
+		
+		self.result = urllib2.urlopen(playlist).read()
 	  
 	def xml_get_data(self):
 		self.name_song = re.findall(r'<title><!\[CDATA\[(.+?)\]\]>',self.result)
@@ -156,14 +179,14 @@ class NhacSo:
 		self.link_song=[]
 		self.ext = []
 		
-		data = urllib.urlopen(url)
+		data = urllib2.urlopen(url)
 		
 		_re = re.findall(r'xmlPath=(.+?)&',data.read())
 		if _re:
 			self.xml = _re[0]
 		
 	def xml_get_data(self):
-		data = urllib.urlopen(self.xml)
+		data = urllib2.urlopen(self.xml)
 		
 		response = data.read()
 		
@@ -176,7 +199,7 @@ class NhacSo:
 			self.ext.append(ext)
 
 def filter_link_mp3(link):
-	return urlparse(link)[1]  
+	return urlparse.urlparse(link)[1]  
   
 def downloader(link_song,name_song,artist_name,path,ext,tool_download=None):
 	
@@ -184,8 +207,15 @@ def downloader(link_song,name_song,artist_name,path,ext,tool_download=None):
 	
 	if not os.path.isdir(path):
 		os.mkdir(path)
+	if type(artist_name) == list:
+		flag = True
+	else:
+		flag = False
 	for item in range(len(link_song)):
-		name_song[item]+=' - '+artist_name[item]+ext[item]
+		if flag:
+			name_song[item]+=' - '+artist_name[item]+ext[item]
+		else:
+			name_song[item]+=ext[item]
 		if(path[len(path)-1] != '/'):
 			path+='/'
 		mp3file_list.append(path+name_song[item])
@@ -193,10 +223,11 @@ def downloader(link_song,name_song,artist_name,path,ext,tool_download=None):
 	if(tool_download):
 		if(tool_download == 'wget'):
 			flag='-O'
-		elif(tool_download == 'axel'):
+		elif(tool_download == 'axel' or tool_download == 'curl'):
 			flag='-o'
 		
-		for item in range(len(link_song)):      
+		for item in range(len(link_song)):
+			print '-> Downloading : ' + mp3file_list[item]
 			download=[tool_download]
 			download.append(link_song[item])
 			download.append(flag)
@@ -204,6 +235,7 @@ def downloader(link_song,name_song,artist_name,path,ext,tool_download=None):
 			call(download)
 	else:
 		for item in range(len(link_song)):
+			print '-> Downloading : ' + mp3file_list[item]
 			basic_download(link_song[item],mp3file_list[item])   
 
 def usage():
@@ -211,23 +243,25 @@ def usage():
 
 def help():
 	print '''
-	-t|--tool : axel,wget
+	-t|--tool : axel,wget,curl
 	-l|--link : url link list
 	-s|--save : path
 	-e|--extract : path
+	-q|--quality : use only for youtube
 	-v|--version : version
 	-h|--help : help
 	
 	* If using option -e, this tool doesn't download files, instead, extracting link file to file text'
 	'''
 def main():
-	support_tools = ['wget','axel']
+	support_tools = ['wget','axel','curl']
 	tool = None
 	link = []
 	save = os.getcwd()
 	extract = ''
+	quality = None #use for youtube
 	try:
-		opts,args = getopt.getopt(sys.argv[1:],'t:l:s:e:vh',['tool','link','save','extract','version','help'])
+		opts,args = getopt.getopt(sys.argv[1:],'t:l:s:e:q:vh',['tool','link','save','quality','extract','version','help'])
 	except getopt.GetoptError as err:
 		usage()
 		print str(err)
@@ -245,6 +279,8 @@ def main():
 			save = os.path.expanduser(variable)
 		elif option in ('-e','--extract'):
 			extract = os.path.expanduser(variable)
+		elif option in ('-q','--quality'):
+			quality = variable
 		elif option in ('-v','--version'):
 			out = '\tMusic Downloader@Peternguyen - Version : %s'%__version__
 			print '-'*(len(out)+15)
@@ -258,6 +294,7 @@ def main():
 		else:
 			assert False, "unhandled option"
 			sys.exit(0)
+			
 	if(link):
 		print '-'*(len(link)+4)
 		print ' '*20+'List Link Download'    
@@ -265,25 +302,58 @@ def main():
 			print' ->'+l
 		print '-'*(len(link)+4)
 		print 'Getting Data ....'
-		time.sleep(1)
 		for l in link:
+			music_site = video = None
 			if filter_link_mp3(l) == 'mp3.zing.vn':
-				music_site=Mp3Zing(l)
+				music_site = Mp3Zing(l)
 			elif filter_link_mp3(l) == 'www.nhaccuatui.com':
-				music_site=NhacCuaTui(l)
+				music_site = NhacCuaTui(l)
 			elif filter_link_mp3(l) == 'nhacso.net':
-				music_site=NhacSo(l)
+				music_site = NhacSo(l)
+			elif filter_link_mp3(l) == 'www.youtube.com':
+				if quality and ':' in quality:
+					extension = quality.split(':')[0]
+					q = quality.split(':')[1]
+				else:
+					extension = None
+					q = None
+				video = YouTube(l,q,extension)
 			else:
-				print 'This %s program support mp3.zing.vn,nhaccuatui.com,nhacso.net' % sys.argv[0]
+				print 'This program support mp3.zing.vn,nhaccuatui.com,nhacso.net,youtube.com'
 				sys.exit(0)
-			music_site.xml_get_data()
+
+			if music_site:
+				music_site.xml_get_data()
+				link_song = music_site.link_song
+				name_song = music_site.name_song
+				artist_name = music_site.artist_name
+				ext = music_site.ext
+				flag = True
+			if video:
+				video.GetLink()
+				link_song = video.video_link
+				name_song = video.title
+				artist_name = ''
+				if video.vtype:
+					ext = ['.'+video.vtype]
+				else:
+					ext = None
+				flag = False
+
 			if not extract:
-				print 'Downloading......'
-				downloader(music_site.link_song,music_site.name_song,music_site.artist_name,save,music_site.ext,tool)
+				print 'Downloading %s......' % l
+				if not flag:
+					if type(link_song) == dict:
+						print 'This video %s contains : ' % l 
+						for k in video.video_link:
+							print '\t[+] '+k+':'+video.video_link[k]
+						print 'Try : %s -l %s -q type:quality -s <path>' % (sys.argv[0],l)
+						exit(0)
+				downloader(link_song,name_song,artist_name,save,ext,tool)
 			else:
-				print 'Extracting.......'
+				print 'Extracting %s.......' % l
 				fw = open(extract,'a')
-				for item in music_site.link_song:
+				for item in link_song:
 					fw.write(item+'\n')
 				fw.close()
 	
