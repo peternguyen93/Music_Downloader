@@ -2,11 +2,10 @@
 # -*- encoding: utf-8 -*-
 
 __author__ = "Peter Nguyen"
-__version__ = "3.0 beta 3"
+__version__ = "3.0 beta 4"
 
 import urllib2
 import re
-import httplib
 import sys
 import os
 import time
@@ -14,6 +13,7 @@ import getopt
 import random
 import thread
 import urlparse
+import platform
 from xml.etree import ElementTree
 from subprocess import call
 
@@ -45,6 +45,11 @@ def show_process(proc_name,bytes_write,file_len):
 
 #update multithreading
 def basic_download(url,outfile=''):
+	if platform.system() == 'Linux':
+		path_symboy = '/'
+	elif platform.system() == 'Windows':
+		path_symboy = '\\'
+		
 	req = urllib2.Request(url, headers=hdrs)
 	n = urllib2.urlopen(req)
 	file_len = int(n.info().getheaders('content-length')[0])
@@ -58,8 +63,9 @@ def basic_download(url,outfile=''):
 	fw = open(outfile,'wb')
 	sum_byte=0
 	start = time.time()
+	basename = outfile[outfile.rindex(path_symboy)+1:]
 	while True:
-		show_process(outfile,sum_byte,file_len)
+		show_process(basename,sum_byte,file_len)
 		bs = 1024*random.randint(64,256)
 		data = n.read(bs)
 		sum_byte+=len(data)
@@ -67,14 +73,14 @@ def basic_download(url,outfile=''):
 		if(not data):
 			break
 	end = time.time()
-	print '\n--> Total : %f ms' % (end-start)
+	print '\n--> Total : %f ms - Size : %.2f MB' % ((end-start),file_len/(1024*1024))
 	fw.close()
 	n.close()
 	return 1
-class YouTube:
   
+class YouTube:#youtube.com
 	def __init__(self,url,quality,vtype):
-		self.url = url
+		self.url = url #url
 		self.quality = quality
 		self.vtype = vtype
 		self.video_link = None
@@ -87,12 +93,12 @@ class YouTube:
 		}
 
 	def GetLink(self):
-		video_id = urlparse.parse_qs(urlparse.urlparse(self.url).query)['v'][0]
+		video_id = urlparse.parse_qs(urlparse.urlparse(self.url).query)['v'][0]#get video_id
 		req = urllib2.Request('http://www.youtube.com/get_video_info?&video_id='+video_id, headers=hdrs)
 		d = urllib2.urlopen(req).read()
-		self.title.append(urlparse.parse_qs(urlparse.unquote(d))['title'][0])
+		self.title.append(urlparse.parse_qs(urlparse.unquote(d))['title'][0])#get title of video
 		parse = urlparse.parse_qs(d.decode('utf-8'))
-		streams = parse['url_encoded_fmt_stream_map'][0].split(',')
+		streams = parse['url_encoded_fmt_stream_map'][0].split(',') #get list video url
 		if self.vtype and self.quality:
 			self.video_link = []
 			for i in range(len(streams)):
@@ -227,7 +233,7 @@ def downloader(link_song,name_song,artist_name,path,ext,tool_download=None):
 			flag='-o'
 		
 		for item in range(len(link_song)):
-			print '-> Downloading : ' + mp3file_list[item]
+			print '-> Saving to : ' + mp3file_list[item]
 			download=[tool_download]
 			download.append(link_song[item])
 			download.append(flag)
@@ -235,7 +241,7 @@ def downloader(link_song,name_song,artist_name,path,ext,tool_download=None):
 			call(download)
 	else:
 		for item in range(len(link_song)):
-			print '-> Downloading : ' + mp3file_list[item]
+			print '-> Saving to : ' + mp3file_list[item]
 			basic_download(link_song[item],mp3file_list[item])   
 
 def usage():
@@ -276,9 +282,9 @@ def main():
 		elif option in ('-l','--link'):
 			link = variable.split(' ')
 		elif option in ('-s','--save'):
-			save = os.path.expanduser(variable)
+			save = variable
 		elif option in ('-e','--extract'):
-			extract = os.path.expanduser(variable)
+			extract = variable
 		elif option in ('-q','--quality'):
 			quality = variable
 		elif option in ('-v','--version'):
@@ -295,6 +301,9 @@ def main():
 			assert False, "unhandled option"
 			sys.exit(0)
 			
+	if platform.system() == 'Linux':
+		save = os.path.expanduser(save)
+		extract = os.path.expanduser(extract)
 	if(link):
 		print '-'*(len(link)+4)
 		print ' '*20+'List Link Download'    
@@ -333,7 +342,7 @@ def main():
 				video.GetLink()
 				link_song = video.video_link
 				name_song = video.title
-				artist_name = ''
+				artist_name = None
 				if video.vtype:
 					ext = ['.'+video.vtype]
 				else:
