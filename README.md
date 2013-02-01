@@ -4,7 +4,7 @@ Music_Downloader
 Music Downloader
 
 Author: peternguyen
-Version: 3.0 beta 3
+Version: 3.0 beta 4
 
 Site Music Support:
 - mp3.zing
@@ -18,6 +18,7 @@ Function:
 - Addon Support Playing Musics or Videos With VLC
 - Support download video on youtube.com
 - Recommend use axel or curl to download video from youtube.com
+- Work on Windows, not support wget,curl,axel on windows, you can't only use basic downloader
 
 Example:
 - ex:
