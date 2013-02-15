@@ -300,7 +300,7 @@ def main():
 		else:
 			assert False, "unhandled option"
 			sys.exit(0)
-	if platform.system() == 'Windows':
+	if platform.system() == 'Windows' and tool:
 		print 'This tools not support in Windows'
 		for tool in support_tools:
 			print '[+] %s' % tool
