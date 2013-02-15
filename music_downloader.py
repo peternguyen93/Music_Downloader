@@ -2,7 +2,7 @@
 # -*- encoding: utf-8 -*-
 
 __author__ = "Peter Nguyen"
-__version__ = "3.0 beta 4"
+__version__ = "3.0 release"
 
 import urllib2
 import re
@@ -77,8 +77,8 @@ def basic_download(url,outfile=''):
 	fw.close()
 	n.close()
 	return 1
-  
-class YouTube:#youtube.com
+#youtube.com  
+class YouTube:
 	def __init__(self,url,quality,vtype):
 		self.url = url #url
 		self.quality = quality
@@ -252,7 +252,7 @@ def help():
 	-t|--tool : axel,wget,curl
 	-l|--link : url link list
 	-s|--save : path
-	-e|--extract : path
+	-e|--extract : path or show to show link
 	-q|--quality : use only for youtube
 	-v|--version : version
 	-h|--help : help
@@ -300,7 +300,11 @@ def main():
 		else:
 			assert False, "unhandled option"
 			sys.exit(0)
-			
+	if platform.system() == 'Windows':
+		print 'This tools not support in Windows'
+		for tool in support_tools:
+			print '[+] %s' % tool
+		sys.exit(0)
 	if platform.system() == 'Linux':
 		save = os.path.expanduser(save)
 		extract = os.path.expanduser(extract)
@@ -361,10 +365,15 @@ def main():
 				downloader(link_song,name_song,artist_name,save,ext,tool)
 			else:
 				print 'Extracting %s.......' % l
-				fw = open(extract,'a')
-				for item in link_song:
-					fw.write(item+'\n')
-				fw.close()
+				if (extract == 'show'):
+					print '-'*53
+					for item in link_song:
+						print '[+] ',item
+				else:
+					fw = open(extract,'a')
+					for item in link_song:
+						fw.write(item+'\n')
+					fw.close()
 	
 # MAIN PROGRAM #
 if __name__ == '__main__':
