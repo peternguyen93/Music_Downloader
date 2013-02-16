@@ -4,16 +4,9 @@
 __author__ = "Peter Nguyen"
 __version__ = "3.0 release"
 
-import urllib2
-import re
-import sys
-import os
-import time
-import getopt
-import random
-import thread
-import urlparse
-import platform
+import urllib2,urlparse
+import re,time,random
+import sys,getopt,os,platform
 from xml.etree import ElementTree
 from subprocess import call
 
@@ -30,6 +23,8 @@ def show_process(proc_name,bytes_write,file_len):
 	current = 0
 	if(current < 100):
 		current = (float(bytes_write)/float(file_len))*100
+		if(len(proc_name) > 14):
+			proc_name = proc_name[:13]+'...'
 		output='\r --> %s [' % proc_name
 		for i in range(1,int(current/2)+1):
 			output+='#'
@@ -223,7 +218,7 @@ def downloader(link_song,name_song,artist_name,path,ext,tool_download=None):
 		else:
 			name_song[item]+=ext[item]
 		if(path[len(path)-1] != '/'):
-			path+='/'
+			path+='\\'
 		mp3file_list.append(path+name_song[item])
 
 	if(tool_download):
