@@ -2,7 +2,7 @@
 # -*- encoding: utf-8 -*-
 
 __author__ = "Peter Nguyen"
-__version__ = "3.0 release"
+__version__ = "3.0.1 release"
 
 import urllib2,urlparse
 import re,time,random
@@ -18,6 +18,31 @@ hdrs = {
 	'Accept-Encoding': 'gzip, deflate, sdch',
 	'Connection': 'keep-alive'
 }
+
+def show_size(size):
+	KB = 1024
+	MB = KB*1024
+	GB = 1024*MB
+	output = '%.2f %s'
+	if(size < KB):
+		output = output % (size,'B')
+	elif size >= KB and size < MB:
+		output = output % (size/KB,'KB')
+	elif size >=MB and size < GB:
+		output = output % (size/MB,'MB')
+	else:
+		output = output % (size/GB,'GB')
+	return output
+
+def show_time(time):
+	output = ''
+	if(int(time) < 60):
+		output+='%.4f s' % time
+	elif(time >= 60 and time < 3600):
+		output+='%d m %.4f s' % (int(time)/60,time%60)
+	else:
+		output+='%d h %d m %.4f s' % (int(time)/60-60,time%60)
+	return output
 
 def show_process(proc_name,bytes_write,file_len):
 	current = 0
@@ -68,7 +93,7 @@ def basic_download(url,outfile=''):
 		if(not data):
 			break
 	end = time.time()
-	print '\n--> Total : %f ms - Size : %.2f MB' % ((end-start),file_len/(1024*1024))
+	print '\n--> Total : %s - Size : %s' % (show_time(end-start),show_size(file_len))
 	fw.close()
 	n.close()
 	return 1
@@ -91,25 +116,29 @@ class YouTube:
 		video_id = urlparse.parse_qs(urlparse.urlparse(self.url).query)['v'][0]#get video_id
 		req = urllib2.Request('http://www.youtube.com/get_video_info?&video_id='+video_id, headers=hdrs)
 		d = urllib2.urlopen(req).read()
-		self.title.append(urlparse.parse_qs(urlparse.unquote(d))['title'][0])#get title of video
-		parse = urlparse.parse_qs(d.decode('utf-8'))
-		streams = parse['url_encoded_fmt_stream_map'][0].split(',') #get list video url
-		if self.vtype and self.quality:
-			self.video_link = []
-			for i in range(len(streams)):
-				read_stream = urlparse.parse_qs(streams[i])
-				type = read_stream['type'][0].split(';')[0]
-				quality = read_stream['quality'][0]
-				if type == self.video_type[self.vtype] and quality == self.quality:
-					self.video_link.append(read_stream['url'][0]+'&signature='+read_stream['sig'][0])
-					break
-		if not self.video_link:
-			self.video_link = dict()
-			for i in range(len(streams)):
-				read_stream = urlparse.parse_qs(streams[i])
-				type = read_stream['type'][0].split(';')[0]
-				quality = read_stream['quality'][0]
-				self.video_link.update({type:quality})
+		try:
+			self.title.append(urlparse.parse_qs(urlparse.unquote(d))['title'][0])#get title of video
+			parse = urlparse.parse_qs(d.decode('utf-8'))
+			streams = parse['url_encoded_fmt_stream_map'][0].split(',') #get list video url
+			if self.vtype and self.quality:
+				self.video_link = []
+				for i in range(len(streams)):
+					read_stream = urlparse.parse_qs(streams[i])
+					type = read_stream['type'][0].split(';')[0]
+					quality = read_stream['quality'][0]
+					if type == self.video_type[self.vtype] and quality == self.quality:
+						self.video_link.append(read_stream['url'][0]+'&signature='+read_stream['sig'][0])
+						break
+			if not self.video_link:
+				self.video_link = dict()
+				for i in range(len(streams)):
+					read_stream = urlparse.parse_qs(streams[i])
+					type = read_stream['type'][0].split(';')[0]
+					quality = read_stream['quality'][0]
+					self.video_link.update({type:quality})
+		except KeyError:
+			print '[!] Not Find Direct Download Link.'
+			exit(1)
 
 class Mp3Zing :
 	def __init__ (self,url):
