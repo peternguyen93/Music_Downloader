@@ -93,7 +93,10 @@ def basic_download(url,outfile=''):
 		if(not data):
 			break
 	end = time.time()
-	print '\n--> Total : %s - Size : %s' % (show_time(end-start),show_size(file_len))
+	if(sum_byte == file_len):
+		print '\n--> Total : %s - Size : %s' % (show_time(end-start),show_size(file_len))
+	else:
+		print '\n--> [?] Error Download File!'
 	fw.close()
 	n.close()
 	return 1
@@ -329,11 +332,11 @@ def main():
 		save = os.path.expanduser(save)
 		extract = os.path.expanduser(extract)
 	if(link):
-		print '-'*(len(link)+4)
+		print '-'*(len(link[0])+4)
 		print ' '*20+'List Link Download'    
 		for l in link:
 			print' ->'+l
-		print '-'*(len(link)+4)
+		print '-'*(len(link[0])+4)
 		print 'Getting Data ....'
 		for l in link:
 			music_site = video = None
