@@ -2,7 +2,7 @@
 # -*- encoding: utf-8 -*-
 
 __author__ = "Peter Nguyen"
-__version__ = "3.0.1 release"
+__version__ = "3.0.2 release"
 
 import urllib2,urlparse
 import re,time,random
@@ -37,11 +37,11 @@ def show_size(size):
 def show_time(time):
 	output = ''
 	if(int(time) < 60):
-		output+='%.4f s' % time
+		output+='%d s %.4f' % (int(time),time-int(time))
 	elif(time >= 60 and time < 3600):
-		output+='%d m %.4f s' % (int(time)/60,time%60)
+		output+='%d m %d s %.4f' % (int(time)/60,time%60,time-int(time))
 	else:
-		output+='%d h %d m %.4f s' % (int(time)/60-60,time%60)
+		output+='%d h %d m %d s %.4f' % (int(time)/60-60,time%60,time-int(time))
 	return output
 
 def show_process(proc_name,bytes_write,file_len):
@@ -181,22 +181,18 @@ class NhacCuaTui:
 		self.link_song=[]
 		self.ext = []
 		
-		data = urllib2.urlopen(url)
-
-		for line in data.read().split('\n'):
-			try:
-				_re = re.search(r'file=(.+?)"',line)
-				playlist = _re.group(1)
-				break
-			except AttributeError:
-				pass
+		self.xml_link = 'http://www.nhaccuatui.com/flash/xml?key1='
 		
-		self.result = urllib2.urlopen(playlist).read()
+		data = urllib2.urlopen(url).read()
+		key1 = re.findall(r'NCTNowPlaying\.intFlashPlayer\(\"flashPlayer\", \"song\", \"(.+?)\"',data)
+		self.xml_link += key1[0]
 	  
 	def xml_get_data(self):
-		self.name_song = re.findall(r'<title><!\[CDATA\[(.+?)\]\]>',self.result)
-		self.link_song = re.findall(r'<location><!\[CDATA\[(.+?)\]\]>',self.result)
-		self.artist_name = re.findall(r'<creator><!\[CDATA\[(.+?)\]\]>',self.result)
+		self.result = urllib2.urlopen(self.xml_link).read()
+		print self.xml_link
+		self.name_song = re.findall(r'<title>\n        <!\[CDATA\[(.+?)\]\]>',self.result)
+		self.link_song = re.findall(r'<location>\n        <!\[CDATA\[(.+?)\]\]>',self.result)
+		self.artist_name = re.findall(r'<creator>\n        <!\[CDATA\[(.+?)\]\]>',self.result)
 		  
 		for item in self.link_song:
 			ext = item[item.rfind('.'):len(item)]
@@ -223,7 +219,7 @@ class NhacSo:
 		self.name_song = re.findall(r'\<name\>\<!\[CDATA\[(.+?)\]\]\>\<\/name\>',response)
 		self.artist_name = re.findall(r'\<artist\>\<!\[CDATA\[(.+?)\]\]\>\<\/artist\>',response)
 		self.link_song = re.findall(r'\<mp3link\>\<!\[CDATA\[(.+?)\]\]\>\<\/mp3link\>',response)
-
+	    
 		for item in self.link_song:
 			ext = item[item.rfind('.'):len(item)]
 			self.ext.append(ext)
