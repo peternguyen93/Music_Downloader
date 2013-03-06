@@ -2,7 +2,7 @@
 # -*- encoding: utf-8 -*-
 
 __author__ = "Peter Nguyen"
-__version__ = "3.0.2 release"
+__version__ = "3.0.3 release"
 
 import urllib2,urlparse
 import re,time,random
@@ -137,6 +137,7 @@ class YouTube:
 				for i in range(len(streams)):
 					read_stream = urlparse.parse_qs(streams[i])
 					type = read_stream['type'][0].split(';')[0]
+					type = type.replace('video/','')
 					quality = read_stream['quality'][0]
 					self.video_link.update({type:quality})
 		except KeyError:
@@ -192,7 +193,6 @@ class NhacCuaTui:
 	  
 	def xml_get_data(self):
 		self.result = urllib2.urlopen(self.xml_link).read()
-		print self.xml_link
 		self.name_song = re.findall(r'<title>\n        <!\[CDATA\[(.+?)\]\]>',self.result)
 		self.link_song = re.findall(r'<location>\n        <!\[CDATA\[(.+?)\]\]>',self.result)
 		self.artist_name = re.findall(r'<creator>\n        <!\[CDATA\[(.+?)\]\]>',self.result)
