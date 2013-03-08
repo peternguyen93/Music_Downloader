@@ -2,12 +2,12 @@
 # -*- encoding: utf-8 -*-
 
 __author__ = "Peter Nguyen"
-__version__ = "3.0.3 release"
+__version__ = "3.0.4 release"
 
 import urllib2,urlparse
 import re,time,random
 import sys,getopt,os,platform
-from xml.etree import ElementTree
+from xml.etree import ElementTree as ET
 from subprocess import call
 
 hdrs = {
@@ -161,7 +161,7 @@ class Mp3Zing :
 		
 	def xml_get_data(self):
 		xml=urllib2.urlopen(self.xmllink)
-		xml_parse=ElementTree.parse(xml)   
+		xml_parse=ET.parse(xml)   
 		
 		for name in xml_parse.findall('.//title'):
 			self.name_song.append(unicode(name.text))
@@ -173,10 +173,9 @@ class Mp3Zing :
 		else:
 			for link in xml_parse.findall('.//f480'):
 				self.link_song.append(unicode(link.text))
-		
-		for item in self.link_song:
-			ext = item[item.rfind('.'):len(item)]
-			self.ext.append(ext)
+		root = xml_parse.getroot()
+		for item in root:
+			self.ext.append('.'+item.attrib['type'])
       
 class NhacCuaTui:
 	def __init__(self,url):
@@ -231,9 +230,7 @@ def filter_link_mp3(link):
 	return urlparse.urlparse(link)[1]  
   
 def downloader(link_song,name_song,artist_name,path,ext,tool_download=None):
-	
 	mp3file_list = []
-	
 	if not os.path.isdir(path):
 		os.mkdir(path)
 	if type(artist_name) == list:
@@ -242,30 +239,26 @@ def downloader(link_song,name_song,artist_name,path,ext,tool_download=None):
 		flag = False
 	for item in range(len(link_song)):
 		if flag:
-			name_song[item]+=' - '+artist_name[item]+ext[item]
+			name_song[item] = name_song[item].strip(' \t\n\r')+' - '+artist_name[item]+ext[item]
 		else:
-			name_song[item]+=ext[item]
-		if(path[len(path)-1] != '/'):
-			path+='\\'
+			name_song[item] = name_song[item].strip(' \t\n\r')+ext[item]
 		mp3file_list.append(path+name_song[item])
-
-	if(tool_download):
-		if(tool_download == 'wget'):
-			flag='-O'
-		elif(tool_download == 'axel' or tool_download == 'curl'):
-			flag='-o'
+	
+	if(tool_download == 'wget'):
+		flag='-O'
+	elif(tool_download == 'axel' or tool_download == 'curl'):
+		flag='-o'
 		
-		for item in range(len(link_song)):
-			print '-> Saving to : ' + mp3file_list[item]
+	for item in range(len(link_song)):
+		print '-> Saving to : ' + mp3file_list[item]
+		if (tool_download):
 			download=[tool_download]
 			download.append(link_song[item])
 			download.append(flag)
 			download.append(mp3file_list[item])
 			call(download)
-	else:
-		for item in range(len(link_song)):
-			print '-> Saving to : ' + mp3file_list[item]
-			basic_download(link_song[item],mp3file_list[item])   
+		else:
+			basic_download(link_song[item],mp3file_list[item])
 
 def usage():
 	print 'Usage ./%s -s <path> -l <link> (-t wget option)' % sys.argv[0]
