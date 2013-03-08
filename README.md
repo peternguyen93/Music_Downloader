@@ -4,7 +4,7 @@ Music_Downloader
 Music Downloader
 
 Author: peternguyen
-Version: 3.0.3 release
+Version: 3.0.4 release
 
 Site Music Support:
 - mp3.zing
