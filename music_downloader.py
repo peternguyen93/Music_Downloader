@@ -1,14 +1,25 @@
 #!/usr/bin/python
 # -*- encoding: utf-8 -*-
+# Copyright (c) 2013- PeterNguyen <https://github.com/peternguyen93>
+#
+# Music_Downloader is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Music_Downloader.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = "Peter Nguyen"
-__version__ = "3.0.4 release"
+__version__ = "3.0.5 release"
 
 import urllib2,urlparse
 import re,time,random
 import sys,getopt,os,platform
 from xml.etree import ElementTree as ET
 from subprocess import call
+
+'''Define header http to request data from server'''
 
 hdrs = {
 	'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -20,6 +31,7 @@ hdrs = {
 }
 
 def show_size(size):
+	'''Show size of file'''
 	KB = 1024
 	MB = KB*1024
 	GB = 1024*MB
@@ -35,6 +47,7 @@ def show_size(size):
 	return output
 
 def show_time(time):
+	'''Calculate time and display'''
 	output = ''
 	if(int(time) < 60):
 		output+='%d s %.4f' % (int(time),time-int(time))
@@ -45,6 +58,7 @@ def show_time(time):
 	return output
 
 def show_process(proc_name,bytes_write,file_len):
+	'''Show process of file download'''
 	current = 0
 	if(current < 100):
 		current = (float(bytes_write)/float(file_len))*100
@@ -65,6 +79,11 @@ def show_process(proc_name,bytes_write,file_len):
 
 #update multithreading
 def basic_download(url,outfile=''):
+	''' - Check Path Symboy for each platform
+	    - Get file length and file type
+	    - Check file exists
+	    - Start download file
+	'''
 	if platform.system() == 'Linux':
 		path_symboy = '/'
 	elif platform.system() == 'Windows':
@@ -108,6 +127,7 @@ class YouTube:
 		self.vtype = vtype
 		self.video_link = None
 		self.title = []
+		#define video file type of youtube support
 		self.video_type = {
 			'webm':'video/webm',
 			'flv':'video/x-flv',
@@ -116,7 +136,16 @@ class YouTube:
 		}
 
 	def GetLink(self):
-		video_id = urlparse.parse_qs(urlparse.urlparse(self.url).query)['v'][0]#get video_id
+		'''
+		- Parse param v and get video id
+		- Use http://www.youtube.com/get_video_info?&video_id= to get link and quality
+		- Direct Link : url_encoded_fmt_stream_map + &signature= +sig
+		'''
+		try:
+			video_id = urlparse.parse_qs(urlparse.urlparse(self.url).query)['v'][0]#get video_id
+		except KeyError:
+			print '[?] Link Error'
+			sys.exit(1)
 		req = urllib2.Request('http://www.youtube.com/get_video_info?&video_id='+video_id, headers=hdrs)
 		d = urllib2.urlopen(req).read()
 		try:
@@ -151,15 +180,21 @@ class Mp3Zing :
 		self.artist_name=[]
 		self.link_song=[]
 		self.ext=[]
-		data=urllib2.urlopen(self.url)
-		for line in data.read().split('\n'):
-			try:
-				_rem=re.search(r'xmlURL=(.+?)&',line)
-				self.xmllink = _rem.group(1)
-			except AttributeError:
-				pass
-		
+		reg = urllib2.Request(self.url,headers=hdrs)
+		data=urllib2.urlopen(reg).read()
+		matches=re.search(r'xmlURL=(.+?)&',data)
+		try:
+			self.xmllink = matches[0]
+		except IndexError:
+			print '[?] Not Find Direct Link'
+			sys.exit(1)
+			
 	def xml_get_data(self):
+		'''
+		- Parse xmlURl
+		- Read xmlFile and parse sytax
+		- Get Data From xmlFile
+		'''
 		xml=urllib2.urlopen(self.xmllink)
 		xml_parse=ET.parse(xml)   
 		
@@ -188,9 +223,18 @@ class NhacCuaTui:
 		
 		data = urllib2.urlopen(url).read()
 		key1 = re.findall(r'NCTNowPlaying\.intFlashPlayer\(\"flashPlayer\", \"song\", \"(.+?)\"',data)
-		self.xml_link += key1[0]
+		try:
+			self.xml_link += key1[0]
+		except IndexError:
+			print '[?] Not Found Direct Link'
+			sys.exit(1)
 	  
 	def xml_get_data(self):
+		'''
+		- Parse key1 value from webpage
+		- Read xmlFile and parse sytax
+		- Get Data From xmlFile
+		'''
 		self.result = urllib2.urlopen(self.xml_link).read()
 		self.name_song = re.findall(r'<title>\n        <!\[CDATA\[(.+?)\]\]>',self.result)
 		self.link_song = re.findall(r'<location>\n        <!\[CDATA\[(.+?)\]\]>',self.result)
@@ -210,10 +254,18 @@ class NhacSo:
 		data = urllib2.urlopen(url)
 		
 		_re = re.findall(r'xmlPath=(.+?)&',data.read())
-		if _re:
+		try:
 			self.xml = _re[0]
+		except IndexError:
+			print '[?] Not Found Direct Link'
+			sys.exit(1)
 		
 	def xml_get_data(self):
+		'''
+		- Parse xmlPath
+		- Read xmlFile and parse sytax
+		- Get Data From xmlFile
+		'''
 		data = urllib2.urlopen(self.xml)
 		
 		response = data.read()
@@ -230,9 +282,9 @@ def filter_link_mp3(link):
 	return urlparse.urlparse(link)[1]  
   
 def downloader(link_song,name_song,artist_name,path,ext,tool_download=None):
-	mp3file_list = []
+	mp3file_list = [] #concat name_song and artist_name ,...
 	if not os.path.isdir(path):
-		os.mkdir(path)
+		os.mkdir(path) #create folder if it's not exists
 	if type(artist_name) == list:
 		flag = True
 	else:
@@ -276,7 +328,7 @@ def help():
 	* If using option -e, this tool doesn't download files, instead, extracting link file to file text'
 	'''
 def main():
-	support_tools = ['wget','axel','curl']
+	support_tools = ['wget','axel','curl'] #support tools download
 	tool = None
 	link = []
 	save = os.getcwd()
@@ -332,6 +384,7 @@ def main():
 		print '-'*(len(link[0])+4)
 		print 'Getting Data ....'
 		for l in link:
+			#check input url or url list
 			music_site = video = None
 			if filter_link_mp3(l) == 'mp3.zing.vn':
 				music_site = Mp3Zing(l)
@@ -350,7 +403,7 @@ def main():
 			else:
 				print 'This program support mp3.zing.vn,nhaccuatui.com,nhacso.net,youtube.com'
 				sys.exit(0)
-
+			#if url is in music_site list
 			if music_site:
 				music_site.xml_get_data()
 				link_song = music_site.link_song
@@ -358,6 +411,7 @@ def main():
 				artist_name = music_site.artist_name
 				ext = music_site.ext
 				flag = True
+			#if url is youtube
 			if video:
 				video.GetLink()
 				link_song = video.video_link
@@ -368,7 +422,7 @@ def main():
 				else:
 					ext = None
 				flag = False
-
+			#if not use option -e| --extract
 			if not extract:
 				print 'Downloading %s......' % l
 				if not flag:
@@ -378,7 +432,11 @@ def main():
 							print '\t[+] '+k+':'+video.video_link[k]
 						print 'Try : %s -l %s -q type:quality -s <path>' % (sys.argv[0],l)
 						exit(0)
-				downloader(link_song,name_song,artist_name,save,ext,tool)
+				if(link_song):
+					downloader(link_song,name_song,artist_name,save,ext,tool)
+				else:
+					print '[!] Direct Url Not Found.'
+					sys.exit(1)
 			else:
 				print 'Extracting %s.......' % l
 				if (extract == 'show'):
