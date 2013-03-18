@@ -11,7 +11,7 @@
 # along with Music_Downloader.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = "Peter Nguyen"
-__version__ = "3.0.5 release"
+__version__ = "3.0.6 release"
 
 import urllib2,urlparse
 import re,time,random
@@ -30,101 +30,117 @@ hdrs = {
 	'Connection': 'keep-alive'
 }
 
-def show_size(size):
-	'''Show size of file'''
-	KB = 1024
-	MB = KB*1024
-	GB = 1024*MB
-	output = '%.2f %s'
-	if(size < KB):
-		output = output % (size,'B')
-	elif size >= KB and size < MB:
-		output = output % (size/KB,'KB')
-	elif size >=MB and size < GB:
-		output = output % (size/MB,'MB')
-	else:
-		output = output % (size/GB,'GB')
-	return output
-
-def show_time(time):
-	'''Calculate time and display'''
-	output = ''
-	if(int(time) < 60):
-		output+='%d s %.4f' % (int(time),time-int(time))
-	elif(time >= 60 and time < 3600):
-		output+='%d m %d s %.4f' % (int(time)/60,time%60,time-int(time))
-	else:
-		output+='%d h %d m %d s %.4f' % (int(time)/60-60,time%60,time-int(time))
-	return output
-
-def show_process(proc_name,bytes_write,file_len):
-	'''Show process of file download'''
-	current = 0
-	if(current < 100):
-		current = (float(bytes_write)/float(file_len))*100
-		if(len(proc_name) > 14):
-			proc_name = proc_name[:13]+'...'
-		output='\r --> %s [' % proc_name
-		for i in range(1,int(current/2)+1):
-			output+='#'
-		for i in range(1,int((100-current)/2)+1):
-			output+=' '
-		if(current < 100):
-			end_str = '] '+'{0:.2f}'.format(current)+'%'
-		else:
-			end_str = '] 100%|Done'
-		output+=end_str
-		sys.stdout.write(output)
-	sys.stdout.flush()
-
-#update multithreading
-def basic_download(url,outfile=''):
-	''' - Check Path Symboy for each platform
-	    - Get file length and file type
-	    - Check file exists
-	    - Start download file
-	'''
-	if platform.system() == 'Linux':
-		path_symboy = '/'
-	elif platform.system() == 'Windows':
-		path_symboy = '\\'
+#BasicDownload Class
+class BasicDownload:
+	def __init__(self,url,outfile = ''):
+		self.url = url
+		self.outfile = outfile
+	#startDownload
+	def startDownload(self):
+		''' 
+			- Check Path Symboy for each platform
+			- Get file length and file type
+			- Check file exists
+			- Start download file
+		'''
+		if platform.system() == 'Linux':
+			path_symboy = '/'
+		elif platform.system() == 'Windows':
+			path_symboy = '\\'
 		
-	req = urllib2.Request(url, headers=hdrs)
-	n = urllib2.urlopen(req)
-	file_len = int(n.info().getheaders('content-length')[0])
-	file_type = n.info().getheaders('content-type')[0]
-	file_type = file_type[len(file_type)-3:len(file_type)]
+		try:
+			req = urllib2.Request(self.url, headers=hdrs)
+			n = urllib2.urlopen(req)
+			file_len = int(n.info().getheaders('content-length')[0])
+			file_type = n.info().getheaders('content-type')[0]
+			file_type = file_type[len(file_type)-3:len(file_type)]
+			
+			if(os.path.exists(self.outfile) and os.path.getsize(self.outfile) == file_len):
+				return 0
+			if(not self.outfile):
+				self.outfile+=os.getcwd()+'outfile'+'.'+file_type
+			fw = open(self.outfile,'wb')
+			sum_byte=0
+			start = time.time()
+			basename = self.outfile[self.outfile.rindex(path_symboy)+1:]
+			while True:
+				self.show_process(basename,sum_byte,file_len)
+				bs = 1024*random.randint(64,256) #random bytes read
+				data = n.read(bs)
+				sum_byte+=len(data)
+				fw.write(data)
+				if(not data):
+					break
+			end = time.time()
+			if(sum_byte == file_len):
+				print '\n--> Total : %s - Size : %s' % (self.show_time(end-start),self.show_size(file_len))
+			else:
+				print '\n--> [?] Error Download File!'
+		except urllib2.HTTPError:
+			print '[!] HTTP Connect Error, Please Check Connection'
+			return 0
+		except urllib2.URLError, e:
+			print '[!] HTTP Error : ', e.code
+			return 0
+		finally:
+			fw.close()
+			n.close()
+		return 1
+	#show ProcessBar
+	def show_process(self,proc_name,bytes_write,file_len):
+		'''Show process of file download'''
+		current = 0
+		if(current < 100):#check if current less than 100 percent
+			current = (float(bytes_write)/float(file_len))*100#calculate percent
+			if(len(proc_name) > 14):#if length of name rather than 14 character get 13 character
+				proc_name = proc_name[:13]+'...'
+			output='\r --> %s [' % proc_name
+			for i in range(1,int(current/2)+1):#print '#' fill processBar
+				output+='#'
+			for i in range(1,int((100-current)/2)+1):#print ' ' to present part not download
+				output+=' '
+			if(current < 100):#print percent 
+				end_str = '] '+'{0:.2f}'.format(current)+'%'
+			else:#end processBar
+				end_str = '] 100%|Done'
+			output+=end_str
+			sys.stdout.write(output)
+		sys.stdout.flush()
 	
-	if(os.path.exists(outfile) and os.path.getsize(outfile) == file_len):
-		return 0
-	if(not outfile):
-		outfile+=os.getcwd()+'outfile'+'.'+file_type
-	fw = open(outfile,'wb')
-	sum_byte=0
-	start = time.time()
-	basename = outfile[outfile.rindex(path_symboy)+1:]
-	while True:
-		show_process(basename,sum_byte,file_len)
-		bs = 1024*random.randint(64,256)
-		data = n.read(bs)
-		sum_byte+=len(data)
-		fw.write(data)
-		if(not data):
-			break
-	end = time.time()
-	if(sum_byte == file_len):
-		print '\n--> Total : %s - Size : %s' % (show_time(end-start),show_size(file_len))
-	else:
-		print '\n--> [?] Error Download File!'
-	fw.close()
-	n.close()
-	return 1
-#youtube.com  
+	def show_size(self,size):
+		'''Show size of file'''
+		KB = 1024
+		MB = KB*1024
+		GB = 1024*MB
+		output = '%.2f %s'
+		if(size < KB):
+			output = output % (size,'B')
+		elif size >= KB and size < MB:
+			output = output % (size/KB,'KB')
+		elif size >=MB and size < GB:
+			output = output % (size/MB,'MB')
+		else:
+			output = output % (size/GB,'GB')
+		return output
+
+	def show_time(self,time):
+		'''Calculate time and display'''
+		output = ''
+		if(int(time) < 60):
+			output+='%d s %.4f' % (int(time),time-int(time))
+		elif(time >= 60 and time < 3600):
+			output+='%d m %d s %.4f' % (int(time)/60,time%60,time-int(time))
+		else:
+			output+='%d h %d m %d s %.4f' % (int(time)/60-60,time%60,time-int(time))
+		return output
+'''
+	- This Class Setup Method to parse Youtube Url and get Direct Video URL
+'''
 class YouTube:
 	def __init__(self,url,quality,vtype):
 		self.url = url #url
-		self.quality = quality
-		self.vtype = vtype
+		self.quality = quality #quality
+		self.vtype = vtype #video type
 		self.video_link = None
 		self.title = []
 		#define video file type of youtube support
@@ -137,9 +153,9 @@ class YouTube:
 
 	def GetLink(self):
 		'''
-		- Parse param v and get video id
-		- Use http://www.youtube.com/get_video_info?&video_id= to get link and quality
-		- Direct Link : url_encoded_fmt_stream_map + &signature= +sig
+			- Parse param v and get video id
+			- Use http://www.youtube.com/get_video_info?&video_id= to get link and quality
+			- Direct Link : url_encoded_fmt_stream_map + &signature= +sig
 		'''
 		try:
 			video_id = urlparse.parse_qs(urlparse.urlparse(self.url).query)['v'][0]#get video_id
@@ -173,6 +189,10 @@ class YouTube:
 			print '[!] Not Find Direct Download Link.'
 			exit(1)
 
+'''
+	Class Mp3Zing,NhacCuaTui,NhacSo Provide same Method Parse URL, get XML link and parse it to get
+	direct mediafile for download
+'''
 class Mp3Zing :
 	def __init__ (self,url):
 		self.url=url
@@ -191,26 +211,33 @@ class Mp3Zing :
 			
 	def xml_get_data(self):
 		'''
-		- Parse xmlURl
-		- Read xmlFile and parse sytax
-		- Get Data From xmlFile
+			- Parse xmlURl
+			- Read xmlFile and parse sytax
+			- Get Data From xmlFile
 		'''
-		xml=urllib2.urlopen(self.xmllink)
-		xml_parse=ET.parse(xml)   
-		
-		for name in xml_parse.findall('.//title'):
-			self.name_song.append(unicode(name.text))
-		for artist in xml_parse.findall('.//performer'):
-			self.artist_name.append(unicode(artist.text))
-		if(not xml_parse.findall('.//f480')):
-			for link in xml_parse.findall('.//source'):
-				self.link_song.append(unicode(link.text))
-		else:
-			for link in xml_parse.findall('.//f480'):
-				self.link_song.append(unicode(link.text))
-		root = xml_parse.getroot()
-		for item in root:
-			self.ext.append('.'+item.attrib['type'])
+		try:
+			xml = urllib2.urlopen(self.xmllink)
+			xml_parse = ET.parse(xml)   
+			
+			for name in xml_parse.findall('.//title'):
+				self.name_song.append(unicode(name.text))
+			for artist in xml_parse.findall('.//performer'):
+				self.artist_name.append(unicode(artist.text))
+			if(not xml_parse.findall('.//f480')):
+				for link in xml_parse.findall('.//source'):
+					self.link_song.append(unicode(link.text))
+			else:
+				for link in xml_parse.findall('.//f480'):
+					self.link_song.append(unicode(link.text))
+			root = xml_parse.getroot()
+			for item in root:
+				self.ext.append('.'+item.attrib['type'])
+		except urllib2.HTTPError:
+			print '[!] HTTP Connect Error, Please Check Connection'
+			sys.exit(1)
+		except urllib2.URLError, e:
+			print '[!] HTTP Error : ', e.code
+			sys.exit(1)
       
 class NhacCuaTui:
 	def __init__(self,url):
@@ -231,18 +258,25 @@ class NhacCuaTui:
 	  
 	def xml_get_data(self):
 		'''
-		- Parse key1 value from webpage
-		- Read xmlFile and parse sytax
-		- Get Data From xmlFile
+			- Parse key1 value from webpage
+			- Read xmlFile and parse sytax
+			- Get Data From xmlFile
 		'''
-		self.result = urllib2.urlopen(self.xml_link).read()
-		self.name_song = re.findall(r'<title>\n        <!\[CDATA\[(.+?)\]\]>',self.result)
-		self.link_song = re.findall(r'<location>\n        <!\[CDATA\[(.+?)\]\]>',self.result)
-		self.artist_name = re.findall(r'<creator>\n        <!\[CDATA\[(.+?)\]\]>',self.result)
-		  
-		for item in self.link_song:
-			ext = item[item.rfind('.'):len(item)]
-			self.ext.append(ext)
+		try:
+			self.result = urllib2.urlopen(self.xml_link).read()
+			self.name_song = re.findall(r'<title>\n        <!\[CDATA\[(.+?)\]\]>',self.result)
+			self.link_song = re.findall(r'<location>\n        <!\[CDATA\[(.+?)\]\]>',self.result)
+			self.artist_name = re.findall(r'<creator>\n        <!\[CDATA\[(.+?)\]\]>',self.result)
+			  
+			for item in self.link_song:
+				ext = item[item.rfind('.'):len(item)]
+				self.ext.append(ext)
+		except urllib2.HTTPError:
+			print '[!] HTTP Connect Error, Please Check Connection'
+			sys.exit(1)
+		except urllib2.URLError, e:
+			print '[!] HTTP Error : ', e.code
+			sys.exit(1)
 
 class NhacSo:
 	def __init__(self,url):
@@ -262,24 +296,28 @@ class NhacSo:
 		
 	def xml_get_data(self):
 		'''
-		- Parse xmlPath
-		- Read xmlFile and parse sytax
-		- Get Data From xmlFile
+			- Parse xmlPath
+			- Read xmlFile and parse sytax
+			- Get Data From xmlFile
 		'''
-		data = urllib2.urlopen(self.xml)
-		
-		response = data.read()
-		
-		self.name_song = re.findall(r'\<name\>\<!\[CDATA\[(.+?)\]\]\>\<\/name\>',response)
-		self.artist_name = re.findall(r'\<artist\>\<!\[CDATA\[(.+?)\]\]\>\<\/artist\>',response)
-		self.link_song = re.findall(r'\<mp3link\>\<!\[CDATA\[(.+?)\]\]\>\<\/mp3link\>',response)
-	    
-		for item in self.link_song:
-			ext = item[item.rfind('.'):len(item)]
-			self.ext.append(ext)
-
-def filter_link_mp3(link):
-	return urlparse.urlparse(link)[1]  
+		try:
+			data = urllib2.urlopen(self.xml)
+			
+			response = data.read()
+			
+			self.name_song = re.findall(r'\<name\>\<!\[CDATA\[(.+?)\]\]\>\<\/name\>',response)
+			self.artist_name = re.findall(r'\<artist\>\<!\[CDATA\[(.+?)\]\]\>\<\/artist\>',response)
+			self.link_song = re.findall(r'\<mp3link\>\<!\[CDATA\[(.+?)\]\]\>\<\/mp3link\>',response)
+		    
+			for item in self.link_song:
+				ext = item[item.rfind('.'):len(item)]
+				self.ext.append(ext)
+		except urllib2.HTTPError:
+			print '[!] HTTP Connect Error, Please Check Connection'
+			sys.exit(1)
+		except urllib2.URLError, e:
+			print '[!] HTTP Error : ', e.code
+			sys.exit(1)
   
 def downloader(link_song,name_song,artist_name,path,ext,tool_download=None):
 	mp3file_list = [] #concat name_song and artist_name ,...
@@ -289,6 +327,7 @@ def downloader(link_song,name_song,artist_name,path,ext,tool_download=None):
 		flag = True
 	else:
 		flag = False
+	#Concat name_song and other option to create filename
 	for item in range(len(link_song)):
 		if flag:
 			name_song[item] = name_song[item].strip(' \t\n\r')+' - '+artist_name[item]+ext[item]
@@ -308,14 +347,17 @@ def downloader(link_song,name_song,artist_name,path,ext,tool_download=None):
 			download.append(link_song[item])
 			download.append(flag)
 			download.append(mp3file_list[item])
-			call(download)
+			call(download) #call subprocess
 		else:
-			basic_download(link_song[item],mp3file_list[item])
+			downloader = BasicDownload(link_song[item],mp3file_list[item]) # call basic_download
+			downloader.startDownload()
 
 def usage():
+	'''Usage Function'''
 	print 'Usage ./%s -s <path> -l <link> (-t wget option)' % sys.argv[0]
 
 def help():
+	'''Help Function'''
 	print '''
 	-t|--tool : axel,wget,curl
 	-l|--link : url link list
@@ -328,6 +370,10 @@ def help():
 	* If using option -e, this tool doesn't download files, instead, extracting link file to file text'
 	'''
 def main():
+	'''
+		- Main Function
+		- Setup Program
+	'''
 	support_tools = ['wget','axel','curl'] #support tools download
 	tool = None
 	link = []
@@ -343,7 +389,7 @@ def main():
 	for option,variable in opts:
 		if option in ('-t','--tool'):
 			if(variable in support_tools):
-				tool=variable
+				tool = variable
 			else:
 				print 'Tool %s doesn\'t support' % variable
 				sys.exit(1)
@@ -369,14 +415,18 @@ def main():
 			assert False, "unhandled option"
 			sys.exit(0)
 	if platform.system() == 'Windows' and tool:
+		# if platform is Windows and option tool is set not support other tools
 		print 'This tools not support in Windows'
 		for tool in support_tools:
 			print '[+] %s' % tool
 		sys.exit(0)
+	
 	if platform.system() == 'Linux':
 		save = os.path.expanduser(save)
 		extract = os.path.expanduser(extract)
+	
 	if(link):
+		#if link is validate
 		print '-'*(len(link[0])+4)
 		print ' '*20+'List Link Download'    
 		for l in link:
@@ -386,13 +436,19 @@ def main():
 		for l in link:
 			#check input url or url list
 			music_site = video = None
-			if filter_link_mp3(l) == 'mp3.zing.vn':
+			try:
+				host = urlparse.urlparse(l)[1] #Parse Host
+			except IndexError:
+				print '[!] Wrong Url.'
+				sys.exit(0)
+			#check host in support download list
+			if host == 'mp3.zing.vn':
 				music_site = Mp3Zing(l)
-			elif filter_link_mp3(l) == 'www.nhaccuatui.com':
+			elif host == 'www.nhaccuatui.com':
 				music_site = NhacCuaTui(l)
-			elif filter_link_mp3(l) == 'nhacso.net':
+			elif host == 'nhacso.net':
 				music_site = NhacSo(l)
-			elif filter_link_mp3(l) == 'www.youtube.com':
+			elif host == 'www.youtube.com':
 				if quality and ':' in quality:
 					extension = quality.split(':')[0]
 					q = quality.split(':')[1]
@@ -425,21 +481,22 @@ def main():
 			#if not use option -e| --extract
 			if not extract:
 				print 'Downloading %s......' % l
-				if not flag:
+				if not flag:#check if host is Youtube and not set option quality
 					if type(link_song) == dict:
 						print 'This video %s contains : ' % l 
 						for k in video.video_link:
 							print '\t[+] '+k+':'+video.video_link[k]
 						print 'Try : %s -l %s -q type:quality -s <path>' % (sys.argv[0],l)
 						exit(0)
-				if(link_song):
+				if(link_song): #if link is get, download link and save to file
 					downloader(link_song,name_song,artist_name,save,ext,tool)
 				else:
 					print '[!] Direct Url Not Found.'
 					sys.exit(1)
 			else:
+				#if -e option turn on, extract link to text file
 				print 'Extracting %s.......' % l
-				if (extract == 'show'):
+				if (extract == 'show'): #view link
 					print '-'*53
 					for item in link_song:
 						print '[+] ',item
@@ -448,10 +505,12 @@ def main():
 					for item in link_song:
 						fw.write(item+'\n')
 					fw.close()
+	else:
+		usage()
 	
 # MAIN PROGRAM #
 if __name__ == '__main__':
 	try:
 		main()
 	except KeyboardInterrupt:
-		print 'Download Was Interrupted'
+		print '[!] Download Was Interrupted'
