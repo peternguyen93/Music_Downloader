@@ -11,7 +11,7 @@
 # along with Music_Downloader.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = "Peter Nguyen"
-__version__ = "3.0.6 release"
+__version__ = "3.0.7"
 
 import urllib2,urlparse
 import re,time,random
@@ -51,8 +51,8 @@ class BasicDownload:
 		try:
 			req = urllib2.Request(self.url, headers=hdrs)
 			n = urllib2.urlopen(req)
-			file_len = int(n.info().getheaders('content-length')[0])
-			file_type = n.info().getheaders('content-type')[0]
+			file_len = int(n.info().getheaders('content-length')[0]) #get file size
+			file_type = n.info().getheaders('content-type')[0] #get file type
 			file_type = file_type[len(file_type)-3:len(file_type)]
 			
 			if(os.path.exists(self.outfile) and os.path.getsize(self.outfile) == file_len):
@@ -195,14 +195,10 @@ class YouTube:
 '''
 class Mp3Zing :
 	def __init__ (self,url):
-		self.url=url
-		self.name_song=[]
-		self.artist_name=[]
-		self.link_song=[]
-		self.ext=[]
-		reg = urllib2.Request(self.url,headers=hdrs)
-		data=urllib2.urlopen(reg).read()
-		matches=re.search(r'xmlURL=(.+?)&',data)
+		self.list_files = []
+		self.link_song = []
+		data = urllib2.urlopen(url).read()
+		matches = re.findall(r'xmlURL=(.+?)&',data)
 		try:
 			self.xmllink = matches[0]
 		except IndexError:
@@ -218,11 +214,12 @@ class Mp3Zing :
 		try:
 			xml = urllib2.urlopen(self.xmllink)
 			xml_parse = ET.parse(xml)   
-			
+			name_song = []
 			for name in xml_parse.findall('.//title'):
-				self.name_song.append(unicode(name.text))
+				name_song.append(unicode(name.text))
+			artist_name = []
 			for artist in xml_parse.findall('.//performer'):
-				self.artist_name.append(unicode(artist.text))
+				artist_name.append(unicode(artist.text))
 			if(not xml_parse.findall('.//f480')):
 				for link in xml_parse.findall('.//source'):
 					self.link_song.append(unicode(link.text))
@@ -230,8 +227,11 @@ class Mp3Zing :
 				for link in xml_parse.findall('.//f480'):
 					self.link_song.append(unicode(link.text))
 			root = xml_parse.getroot()
+			ext = []
 			for item in root:
-				self.ext.append('.'+item.attrib['type'])
+				ext.append('.'+item.attrib['type'])
+			for i in xrange(len(self.link_song)):
+				self.list_files.append(name_song[i].strip(' \t\n\r')+' - '+artist_name[i].strip(' \t\n\r')+ext[i])
 		except urllib2.HTTPError:
 			print '[!] HTTP Connect Error, Please Check Connection'
 			sys.exit(1)
@@ -241,10 +241,8 @@ class Mp3Zing :
       
 class NhacCuaTui:
 	def __init__(self,url):
-		self.name_song=[]
-		self.artist_name=[]
-		self.link_song=[]
-		self.ext = []
+		self.name_song = []
+		self.list_files = []
 		
 		self.xml_link = 'http://www.nhaccuatui.com/flash/xml?key1='
 		
@@ -263,14 +261,16 @@ class NhacCuaTui:
 			- Get Data From xmlFile
 		'''
 		try:
-			self.result = urllib2.urlopen(self.xml_link).read()
-			self.name_song = re.findall(r'<title>\n        <!\[CDATA\[(.+?)\]\]>',self.result)
-			self.link_song = re.findall(r'<location>\n        <!\[CDATA\[(.+?)\]\]>',self.result)
-			self.artist_name = re.findall(r'<creator>\n        <!\[CDATA\[(.+?)\]\]>',self.result)
-			  
-			for item in self.link_song:
-				ext = item[item.rfind('.'):len(item)]
-				self.ext.append(ext)
+			result = urllib2.urlopen(self.xml_link).read()
+			name_song = re.findall(r'<title>\n        <!\[CDATA\[(.+?)\]\]>',result)
+			artist_name = re.findall(r'<creator>\n        <!\[CDATA\[(.+?)\]\]>',result)
+			self.link_song = re.findall(r'<location>\n        <!\[CDATA\[(.+?)\]\]>',result)
+			
+			for i in xrange(len(self.link_song)):
+				name_song[i] = name_song[i].strip(' \r\t\n')
+				artist_name[i] = name_song[i].strip(' \r\t\n')
+				ext = self.link_song[i][self.link_song[i].rfind('.'):len(self.link_song[i])]
+				self.list_files.append(name_song[i] + ' - ' + artist_name[i] + ext)
 		except urllib2.HTTPError:
 			print '[!] HTTP Connect Error, Please Check Connection'
 			sys.exit(1)
@@ -280,10 +280,8 @@ class NhacCuaTui:
 
 class NhacSo:
 	def __init__(self,url):
-		self.name_song=[]
-		self.artist_name=[]
-		self.link_song=[]
-		self.ext = []
+		self.name_song = []
+		self.list_files = []
 		
 		data = urllib2.urlopen(url)
 		
@@ -305,13 +303,15 @@ class NhacSo:
 			
 			response = data.read()
 			
-			self.name_song = re.findall(r'\<name\>\<!\[CDATA\[(.+?)\]\]\>\<\/name\>',response)
-			self.artist_name = re.findall(r'\<artist\>\<!\[CDATA\[(.+?)\]\]\>\<\/artist\>',response)
+			name_song = re.findall(r'\<name\>\<!\[CDATA\[(.+?)\]\]\>\<\/name\>',response)
+			artist_name = re.findall(r'\<artist\>\<!\[CDATA\[(.+?)\]\]\>\<\/artist\>',response)
 			self.link_song = re.findall(r'\<mp3link\>\<!\[CDATA\[(.+?)\]\]\>\<\/mp3link\>',response)
-		    
-			for item in self.link_song:
-				ext = item[item.rfind('.'):len(item)]
-				self.ext.append(ext)
+
+			for i in xrange(len(self.link_song)):
+				name_song[i] = name_song[i].strip(' \r\t\n')
+				artist_name[i] = name_song[i].strip(' \r\t\n')
+				ext = self.link_song[i][self.link_song[i].rfind('.'):len(self.link_song[i])]
+				self.list_files.append(name_song[i] + ' - ' + artist_name[i] + ext)
 		except urllib2.HTTPError:
 			print '[!] HTTP Connect Error, Please Check Connection'
 			sys.exit(1)
@@ -319,42 +319,33 @@ class NhacSo:
 			print '[!] HTTP Error : ', e.code
 			sys.exit(1)
   
-def downloader(link_song,name_song,artist_name,path,ext,tool_download=None):
-	mp3file_list = [] #concat name_song and artist_name ,...
+def downloader(link_song,list_files,path,tool_download=None):
 	if not os.path.isdir(path):
 		os.mkdir(path) #create folder if it's not exists
-	if type(artist_name) == list:
-		flag = True
-	else:
-		flag = False
-	#Concat name_song and other option to create filename
-	for item in range(len(link_song)):
-		if flag:
-			name_song[item] = name_song[item].strip(' \t\n\r')+' - '+artist_name[item]+ext[item]
-		else:
-			name_song[item] = name_song[item].strip(' \t\n\r')+ext[item]
-		mp3file_list.append(path+name_song[item])
 	
 	if(tool_download == 'wget'):
 		flag='-O'
 	elif(tool_download == 'axel' or tool_download == 'curl'):
 		flag='-o'
-		
+	#add path to file_lists
+	for item in xrange(len(list_files)):
+		list_files[item] = path + list_files[item]
+	
 	for item in range(len(link_song)):
-		print '-> Saving to : ' + mp3file_list[item]
+		print '-> Saving to : ' + list_files[item]
 		if (tool_download):
 			download=[tool_download]
 			download.append(link_song[item])
 			download.append(flag)
-			download.append(mp3file_list[item])
+			download.append(list_files[item])
 			call(download) #call subprocess
 		else:
-			downloader = BasicDownload(link_song[item],mp3file_list[item]) # call basic_download
+			downloader = BasicDownload(link_song[item],list_files[item]) # call basic_download
 			downloader.startDownload()
 
 def usage():
 	'''Usage Function'''
-	print 'Usage ./%s -s <path> -l <link> (-t wget option)' % sys.argv[0]
+	print 'Usage %s -s <path> -l <link> (-t wget option)' % sys.argv[0]
 
 def help():
 	'''Help Function'''
@@ -463,9 +454,7 @@ def main():
 			if music_site:
 				music_site.xml_get_data()
 				link_song = music_site.link_song
-				name_song = music_site.name_song
-				artist_name = music_site.artist_name
-				ext = music_site.ext
+				list_files = music_site.list_files
 				flag = True
 			#if url is youtube
 			if video:
@@ -489,7 +478,7 @@ def main():
 						print 'Try : %s -l %s -q type:quality -s <path>' % (sys.argv[0],l)
 						exit(0)
 				if(link_song): #if link is get, download link and save to file
-					downloader(link_song,name_song,artist_name,save,ext,tool)
+					downloader(link_song,list_files,save,tool)
 				else:
 					print '[!] Direct Url Not Found.'
 					sys.exit(1)
