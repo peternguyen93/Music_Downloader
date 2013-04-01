@@ -4,7 +4,8 @@ Music_Downloader
 Music Downloader
 
 Author: peternguyen
-Version: 3.0.7 release
+Version: 3.0.7.1
+
 License: GNU General Public License <http://www.gnu.org/licenses/>
 
 Site Music Support:
@@ -27,4 +28,4 @@ Example:
 - ex for youtube:
 	- ./music_downloader.py -s ~/ -l https://www.youtube.com/watch?v=oPW6xo_fq94 -q type:quality
 	- if you don't know type or quality, you will remove option -q and program shows you list of type:quality, which support by video link
-	- ./music_downloader.py -s ~/ -l https://www.youtube.com/watch?v=oPW6xo_fq94 -q mp3:medium
+	- ./music_downloader.py -s ~/ -l https://www.youtube.com/watch?v=oPW6xo_fq94 -q mp4:medium
