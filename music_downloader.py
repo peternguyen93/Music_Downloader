@@ -11,7 +11,7 @@
 # along with Music_Downloader.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = "Peter Nguyen"
-__version__ = "3.0.7"
+__version__ = "3.0.7.1"
 
 import urllib2,urlparse
 import re,time,random
@@ -165,7 +165,7 @@ class YouTube:
 		req = urllib2.Request('http://www.youtube.com/get_video_info?&video_id='+video_id, headers=hdrs)
 		d = urllib2.urlopen(req).read()
 		try:
-			self.title.append(urlparse.parse_qs(urlparse.unquote(d))['title'][0])#get title of video
+			file_title = urlparse.parse_qs(urlparse.unquote(d))['title'][0]#get title of video
 			parse = urlparse.parse_qs(d.decode('utf-8'))
 			streams = parse['url_encoded_fmt_stream_map'][0].split(',') #get list video url
 			if self.vtype and self.quality:
@@ -176,6 +176,7 @@ class YouTube:
 					quality = read_stream['quality'][0]
 					if type == self.video_type[self.vtype] and quality == self.quality:
 						self.video_link.append(read_stream['url'][0]+'&signature='+read_stream['sig'][0])
+						self.title.append(file_title+'.'+self.vtype)
 						break
 			if not self.video_link:
 				self.video_link = dict()
@@ -360,6 +361,7 @@ def help():
 	
 	* If using option -e, this tool doesn't download files, instead, extracting link file to file text'
 	'''
+
 def main():
 	'''
 		- Main Function
@@ -460,7 +462,7 @@ def main():
 			if video:
 				video.GetLink()
 				link_song = video.video_link
-				name_song = video.title
+				list_files = video.title
 				artist_name = None
 				if video.vtype:
 					ext = ['.'+video.vtype]
