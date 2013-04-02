@@ -11,7 +11,7 @@
 # along with Music_Downloader.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = "Peter Nguyen"
-__version__ = "3.0.7.1"
+__version__ = "3.0.7.2"
 
 import urllib2,urlparse
 import re,time,random
@@ -248,7 +248,7 @@ class NhacCuaTui:
 		self.xml_link = 'http://www.nhaccuatui.com/flash/xml?key1='
 		
 		data = urllib2.urlopen(url).read()
-		key1 = re.findall(r'NCTNowPlaying\.intFlashPlayer\(\"flashPlayer\", \"song\", \"(.+?)\"',data)
+		key1 = re.findall(r'NCTNowPlaying\.intFlashPlayer\(\"flashPlayer\", \"song|playlist\", \"(.+?)\"',data)
 		try:
 			self.xml_link += key1[0]
 		except IndexError:
@@ -304,7 +304,7 @@ class NhacSo:
 			
 			response = data.read()
 			
-			name_song = re.findall(r'\<name\>\<!\[CDATA\[(.+?)\]\]\>\<\/name\>',response)
+			name_song = re.findall(r'\<song\>\n \<id\>\d+\<\/id\>\n \<totalTime\>\d+\<\/totalTime\>\n \<name\>\<!\[CDATA\[(.+?)\]\]\>\<\/name\>',response)
 			artist_name = re.findall(r'\<artist\>\<!\[CDATA\[(.+?)\]\]\>\<\/artist\>',response)
 			self.link_song = re.findall(r'\<mp3link\>\<!\[CDATA\[(.+?)\]\]\>\<\/mp3link\>',response)
 
