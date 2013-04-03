@@ -11,7 +11,7 @@
 # along with Music_Downloader.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = "Peter Nguyen"
-__version__ = "3.0.7.2"
+__version__ = "3.1.0.0"
 
 import urllib2,urlparse
 import re,time,random
@@ -242,15 +242,20 @@ class Mp3Zing :
       
 class NhacCuaTui:
 	def __init__(self,url):
-		self.name_song = []
 		self.list_files = []
+		self.link_song = []
 		
-		self.xml_link = 'http://www.nhaccuatui.com/flash/xml?key1='
+		self.xml_link = 'http://www.nhaccuatui.com/flash/xml'
 		
 		data = urllib2.urlopen(url).read()
-		key1 = re.findall(r'NCTNowPlaying\.intFlashPlayer\(\"flashPlayer\", \"song|playlist\", \"(.+?)\"',data)
+		key = re.findall(r'NCTNowPlaying\.intFlashPlayer\(\"flashPlayer\", \"(song|playlist)\", \"(.+?)\"',data)
 		try:
-			self.xml_link += key1[0]
+			if key[0][0] == 'playlist':
+				self.xml_link += '?key2='+key[0][1] #get playlist
+			elif key[0][0] == 'song':
+				self.xml_link += '?key1='+key[0][1] #get song
+			else:
+				print '[?] Not Match Key'
 		except IndexError:
 			print '[?] Not Found Direct Link'
 			sys.exit(1)
@@ -262,11 +267,16 @@ class NhacCuaTui:
 			- Get Data From xmlFile
 		'''
 		try:
-			result = urllib2.urlopen(self.xml_link).read()
-			name_song = re.findall(r'<title>\n        <!\[CDATA\[(.+?)\]\]>',result)
-			artist_name = re.findall(r'<creator>\n        <!\[CDATA\[(.+?)\]\]>',result)
-			self.link_song = re.findall(r'<location>\n        <!\[CDATA\[(.+?)\]\]>',result)
+			name_song = []
+			artist_name = []
+			result = urllib2.urlopen(self.xml_link)
+			xml = ET.parse(result) #parse xml
 			
+			for node in xml.findall('track'): #find all node track
+				self.link_song.append(node.find('location').text)
+				name_song.append(node.find('title').text)
+				artist_name.append(node.find('creator').text)
+				
 			for i in xrange(len(self.link_song)):
 				name_song[i] = name_song[i].strip(' \r\t\n')
 				artist_name[i] = name_song[i].strip(' \r\t\n')
@@ -281,8 +291,8 @@ class NhacCuaTui:
 
 class NhacSo:
 	def __init__(self,url):
-		self.name_song = []
 		self.list_files = []
+		self.link_song = []
 		
 		data = urllib2.urlopen(url)
 		
