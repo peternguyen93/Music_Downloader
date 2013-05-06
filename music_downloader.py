@@ -11,7 +11,7 @@
 # along with Music_Downloader.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = "Peter Nguyen"
-__version__ = "3.1.0.0"
+__version__ = "3.1.1.0"
 
 import urllib2,urlparse
 import re,time,random
@@ -29,7 +29,11 @@ hdrs = {
 	'Accept-Encoding': 'gzip, deflate, sdch',
 	'Connection': 'keep-alive'
 }
-
+#define path_symboy
+if platform.system() == 'Linux':
+	path_symboy = '/'
+elif platform.system() == 'Windows':
+	path_symboy = '\\'
 #BasicDownload Class
 class BasicDownload:
 	def __init__(self,url,outfile = ''):
@@ -43,10 +47,6 @@ class BasicDownload:
 			- Check file exists
 			- Start download file
 		'''
-		if platform.system() == 'Linux':
-			path_symboy = '/'
-		elif platform.system() == 'Windows':
-			path_symboy = '\\'
 		
 		try:
 			req = urllib2.Request(self.url, headers=hdrs)
@@ -76,6 +76,7 @@ class BasicDownload:
 				print '\n--> Total : %s - Size : %s' % (self.show_time(end-start),self.show_size(file_len))
 			else:
 				print '\n--> [?] Error Download File!'
+			fw.close()
 		except urllib2.HTTPError:
 			print '[!] HTTP Connect Error, Please Check Connection'
 			return 0
@@ -83,7 +84,6 @@ class BasicDownload:
 			print '[!] HTTP Error : ', e.code
 			return 0
 		finally:
-			fw.close()
 			n.close()
 		return 1
 	#show ProcessBar
@@ -231,8 +231,12 @@ class Mp3Zing :
 			ext = []
 			for item in root:
 				ext.append('.'+item.attrib['type'])
+				
 			for i in xrange(len(self.link_song)):
-				self.list_files.append(name_song[i].strip(' \t\n\r')+' - '+artist_name[i].strip(' \t\n\r')+ext[i])
+				name_song[i] = name_song[i].strip(' \r\t\n')
+				artist_name[i] = artist_name[i].strip(' \r\t\n')
+				fullname = name_song[i] + ' - ' + artist_name[i] + ext[i]
+				self.list_files.append(fullname.strip(' \r\t\n'))
 		except urllib2.HTTPError:
 			print '[!] HTTP Connect Error, Please Check Connection'
 			sys.exit(1)
@@ -276,12 +280,13 @@ class NhacCuaTui:
 				self.link_song.append(node.find('location').text)
 				name_song.append(node.find('title').text)
 				artist_name.append(node.find('creator').text)
-				
+			
 			for i in xrange(len(self.link_song)):
 				name_song[i] = name_song[i].strip(' \r\t\n')
-				artist_name[i] = name_song[i].strip(' \r\t\n')
+				artist_name[i] = artist_name[i].strip(' \r\t\n')
 				ext = self.link_song[i][self.link_song[i].rfind('.'):len(self.link_song[i])]
-				self.list_files.append(name_song[i] + ' - ' + artist_name[i] + ext)
+				fullname = name_song[i] + ' - ' + artist_name[i] + ext
+				self.list_files.append(fullname.strip(' \r\t\n'))
 		except urllib2.HTTPError:
 			print '[!] HTTP Connect Error, Please Check Connection'
 			sys.exit(1)
@@ -320,9 +325,10 @@ class NhacSo:
 
 			for i in xrange(len(self.link_song)):
 				name_song[i] = name_song[i].strip(' \r\t\n')
-				artist_name[i] = name_song[i].strip(' \r\t\n')
+				artist_name[i] = artist_name[i].strip(' \r\t\n')
 				ext = self.link_song[i][self.link_song[i].rfind('.'):len(self.link_song[i])]
-				self.list_files.append(name_song[i] + ' - ' + artist_name[i] + ext)
+				fullname = name_song[i] + ' - ' + artist_name[i] + ext
+				self.list_files.append(fullname.strip(' \r\t\n'))
 		except urllib2.HTTPError:
 			print '[!] HTTP Connect Error, Please Check Connection'
 			sys.exit(1)
@@ -339,13 +345,15 @@ def downloader(link_song,list_files,path,tool_download=None):
 	elif(tool_download == 'axel' or tool_download == 'curl'):
 		flag='-o'
 	#add path to file_lists
+	if path[len(path)-1] != path_symboy:
+		path += path_symboy
 	for item in xrange(len(list_files)):
 		list_files[item] = path + list_files[item]
 	
 	for item in range(len(link_song)):
 		print '-> Saving to : ' + list_files[item]
 		if (tool_download):
-			download=[tool_download]
+			download = [tool_download]
 			download.append(link_song[item])
 			download.append(flag)
 			download.append(list_files[item])
