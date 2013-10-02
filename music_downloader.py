@@ -11,19 +11,21 @@
 # along with Music_Downloader.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = "Peter Nguyen"
-__version__ = "3.1.1.0"
+__version__ = "3.1.3.0"
 
 import urllib2,urlparse
 import re,time,random
 import sys,getopt,os,platform
 from xml.etree import ElementTree as ET
 from subprocess import call
+import zlib
+import StringIO
 
 '''Define header http to request data from server'''
 
 hdrs = {
 	'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-	'User-Agent':'Mozilla/5.0 (X11; Linux x86_64; rv:15.0) Gecko/20100101 Firefox/15.0',
+	'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.76 Safari/537.36',
 	'Accept-Language':'en-US,en;q=0.5',
 	'Cache-Control': 'max-age=0',
 	'Accept-Encoding': 'gzip, deflate, sdch',
@@ -63,7 +65,7 @@ class BasicDownload:
 			sum_byte=0
 			start = time.time()
 			basename = self.outfile[self.outfile.rindex(path_symboy)+1:]
-			while True:
+			while 1:
 				self.show_process(basename,sum_byte,file_len)
 				bs = 1024*random.randint(64,256) #random bytes read
 				data = n.read(bs)
@@ -199,6 +201,8 @@ class Mp3Zing :
 		self.list_files = []
 		self.link_song = []
 		data = urllib2.urlopen(url).read()
+		#decompress data recv from server
+		data = zlib.decompress(data,16+zlib.MAX_WBITS)
 		matches = re.findall(r'xmlURL=(.+?)&',data)
 		try:
 			self.xmllink = matches[0]
@@ -214,7 +218,10 @@ class Mp3Zing :
 		'''
 		try:
 			xml = urllib2.urlopen(self.xmllink)
-			xml_parse = ET.parse(xml)   
+			decompress = zlib.decompress(xml.read(),16+zlib.MAX_WBITS)
+			#decompress string object as file object
+			xml = StringIO.StringIO(decompress)
+			xml_parse = ET.parse(xml)
 			name_song = []
 			for name in xml_parse.findall('.//title'):
 				name_song.append(unicode(name.text))
@@ -300,7 +307,6 @@ class NhacSo:
 		self.link_song = []
 		
 		data = urllib2.urlopen(url)
-		
 		_re = re.findall(r'xmlPath=(.+?)&',data.read())
 		try:
 			self.xml = _re[0]
@@ -315,20 +321,19 @@ class NhacSo:
 			- Get Data From xmlFile
 		'''
 		try:
-			data = urllib2.urlopen(self.xml)
-			
-			response = data.read()
-			
-			name_song = re.findall(r'\<song\>\n \<id\>\d+\<\/id\>\n \<totalTime\>\d+\<\/totalTime\>\n \<name\>\<!\[CDATA\[(.+?)\]\]\>\<\/name\>',response)
+			xml = urllib2.urlopen(self.xml)
+			response = xml.read()
+			print [response]
+			name_song = re.findall(r'\<song\>\n \<id\>\d+\<\/id\>\n\n\<totalTime\>\d+\<\/totalTime\>\n\n\<name\>\<\!\[CDATA\[(.+?)\]\]\>\<\/name\>',response)
 			artist_name = re.findall(r'\<artist\>\<!\[CDATA\[(.+?)\]\]\>\<\/artist\>',response)
 			self.link_song = re.findall(r'\<mp3link\>\<!\[CDATA\[(.+?)\]\]\>\<\/mp3link\>',response)
-
 			for i in xrange(len(self.link_song)):
+				print name_song[i]
 				name_song[i] = name_song[i].strip(' \r\t\n')
 				artist_name[i] = artist_name[i].strip(' \r\t\n')
 				ext = self.link_song[i][self.link_song[i].rfind('.'):len(self.link_song[i])]
 				fullname = name_song[i] + ' - ' + artist_name[i] + ext
-				self.list_files.append(fullname.strip(' \r\t\n'))
+				self.list_files.append(fullname.strip(' \r\t\n'))1
 		except urllib2.HTTPError:
 			print '[!] HTTP Connect Error, Please Check Connection'
 			sys.exit(1)
