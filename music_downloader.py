@@ -323,7 +323,6 @@ class NhacSo:
 		try:
 			xml = urllib2.urlopen(self.xml)
 			response = xml.read()
-			print [response]
 			name_song = re.findall(r'\<song\>\n \<id\>\d+\<\/id\>\n\n\<totalTime\>\d+\<\/totalTime\>\n\n\<name\>\<\!\[CDATA\[(.+?)\]\]\>\<\/name\>',response)
 			artist_name = re.findall(r'\<artist\>\<!\[CDATA\[(.+?)\]\]\>\<\/artist\>',response)
 			self.link_song = re.findall(r'\<mp3link\>\<!\[CDATA\[(.+?)\]\]\>\<\/mp3link\>',response)
