@@ -11,7 +11,7 @@
 # along with Music_Downloader.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = "Peter Nguyen"
-__version__ = "3.1.3.0"
+__version__ = "3.1.3.1"
 
 import urllib2,urlparse
 import re,time,random
@@ -332,7 +332,7 @@ class NhacSo:
 				artist_name[i] = artist_name[i].strip(' \r\t\n')
 				ext = self.link_song[i][self.link_song[i].rfind('.'):len(self.link_song[i])]
 				fullname = name_song[i] + ' - ' + artist_name[i] + ext
-				self.list_files.append(fullname.strip(' \r\t\n'))1
+				self.list_files.append(fullname.strip(' \r\t\n'))
 		except urllib2.HTTPError:
 			print '[!] HTTP Connect Error, Please Check Connection'
 			sys.exit(1)
