@@ -233,10 +233,13 @@ class Mp3Zing :
 			else:
 				for link in xml_parse.findall('.//f480'):
 					self.link_song.append(unicode(link.text))
+			# get file type
 			root = xml_parse.getroot()
 			ext = []
-			for item in root:
-				ext.append('.'+item.attrib['type'])
+			for child in root:
+				attrib = child.get('type') # find attribute of element item
+				if attrib:
+					ext.append('.'+child.attrib['type'])
 				
 			for i in xrange(len(self.link_song)):
 				name_song[i] = name_song[i].strip(' \r\t\n')
