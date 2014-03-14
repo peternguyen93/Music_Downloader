@@ -11,7 +11,7 @@
 # along with Music_Downloader.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = "Peter Nguyen"
-__version__ = "3.1.3.1"
+__version__ = "3.1.3.2"
 
 import urllib2,urlparse
 import re,time,random
@@ -22,7 +22,6 @@ import zlib
 import StringIO
 
 '''Define header http to request data from server'''
-
 hdrs = {
 	'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
 	'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.76 Safari/537.36',
@@ -174,20 +173,20 @@ class YouTube:
 				self.video_link = []
 				for i in range(len(streams)):
 					read_stream = urlparse.parse_qs(streams[i])
-					type = read_stream['type'][0].split(';')[0]
+					file_type = read_stream['type'][0].split(';')[0]
 					quality = read_stream['quality'][0]
-					if type == self.video_type[self.vtype] and quality == self.quality:
-						self.video_link.append(read_stream['url'][0]+'&signature='+read_stream['sig'][0])
+					if file_type == self.video_type[self.vtype] and quality == self.quality:
+						self.video_link.append(read_stream['url'][0])
 						self.title.append(file_title+'.'+self.vtype)
 						break
 			if not self.video_link:
-				self.video_link = dict()
+				self.video_link = []
 				for i in range(len(streams)):
 					read_stream = urlparse.parse_qs(streams[i])
-					type = read_stream['type'][0].split(';')[0]
-					type = type.replace('video/','')
+					file_type = read_stream['type'][0].split(';')[0]
+					file_type = file_type.replace('video/','')
 					quality = read_stream['quality'][0]
-					self.video_link.update({type:quality})
+					self.video_link.append((file_type,quality))
 		except KeyError:
 			print '[!] Not Find Direct Download Link.'
 			exit(1)
@@ -495,10 +494,8 @@ def main():
 			if not extract:
 				print 'Downloading %s......' % l
 				if not flag:#check if host is Youtube and not set option quality
-					if type(link_song) == dict:
-						print 'This video %s contains : ' % l 
-						for k in video.video_link:
-							print '\t[+] '+k+':'+video.video_link[k]
+					if not quality:
+						print '\t[+] '+link[0]+':'+link[1]
 						print 'Try : %s -l %s -q type:quality -s <path>' % (sys.argv[0],l)
 						exit(0)
 				if(link_song): #if link is get, download link and save to file
