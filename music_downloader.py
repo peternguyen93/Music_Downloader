@@ -11,7 +11,7 @@
 # along with Music_Downloader.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = "Peter Nguyen"
-__version__ = "3.1.3.2"
+__version__ = "3.1.4"
 
 import urllib2,urlparse
 import re,time,random
@@ -24,23 +24,24 @@ import StringIO
 '''Define header http to request data from server'''
 hdrs = {
 	'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-	'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.76 Safari/537.36',
+	'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) \
+	Chrome/29.0.1547.76 Safari/537.36',
 	'Accept-Language':'en-US,en;q=0.5',
 	'Cache-Control': 'max-age=0',
 	'Accept-Encoding': 'gzip, deflate, sdch',
 	'Connection': 'keep-alive'
 }
-#define path_symboy
+#define path_symbol
 if platform.system() == 'Linux':
-	path_symboy = '/'
+	path_symbol = '/'
 elif platform.system() == 'Windows':
-	path_symboy = '\\'
-#BasicDownload Class
+	path_symbol = '\\'
+# BasicDownload Class
 class BasicDownload:
 	def __init__(self,url,outfile = ''):
 		self.url = url
 		self.outfile = outfile
-	#startDownload
+	# startDownload
 	def startDownload(self):
 		''' 
 			- Check Path Symboy for each platform
@@ -63,7 +64,7 @@ class BasicDownload:
 			fw = open(self.outfile,'wb')
 			sum_byte=0
 			start = time.time()
-			basename = self.outfile[self.outfile.rindex(path_symboy)+1:]
+			basename = self.outfile[self.outfile.rindex(path_symbol)+1:]
 			while 1:
 				self.show_process(basename,sum_byte,file_len)
 				bs = 1024*random.randint(64,256) #random bytes read
@@ -87,7 +88,7 @@ class BasicDownload:
 		finally:
 			n.close()
 		return 1
-	#show ProcessBar
+	# show ProcessBar
 	def show_process(self,proc_name,bytes_write,file_len):
 		'''Show process of file download'''
 		current = 0
@@ -144,7 +145,7 @@ class YouTube:
 		self.vtype = vtype #video type
 		self.video_link = None
 		self.title = []
-		#define video file type of youtube support
+		# define video file type of youtube support
 		self.video_type = {
 			'webm':'video/webm',
 			'flv':'video/x-flv',
@@ -329,7 +330,7 @@ class NhacSo:
 			artist_name = re.findall(r'\<artist\>\<!\[CDATA\[(.+?)\]\]\>\<\/artist\>',response)
 			self.link_song = re.findall(r'\<mp3link\>\<!\[CDATA\[(.+?)\]\]\>\<\/mp3link\>',response)
 			for i in xrange(len(self.link_song)):
-				print name_song[i]
+				# print name_song[i]
 				name_song[i] = name_song[i].strip(' \r\t\n')
 				artist_name[i] = artist_name[i].strip(' \r\t\n')
 				ext = self.link_song[i][self.link_song[i].rfind('.'):len(self.link_song[i])]
@@ -351,8 +352,8 @@ def downloader(link_song,list_files,path,tool_download=None):
 	elif(tool_download == 'axel' or tool_download == 'curl'):
 		flag='-o'
 	#add path to file_lists
-	if path[len(path)-1] != path_symboy:
-		path += path_symboy
+	if path[len(path)-1] != path_symbol:
+		path += path_symbol
 	for item in xrange(len(list_files)):
 		list_files[item] = path + list_files[item]
 	
@@ -365,7 +366,8 @@ def downloader(link_song,list_files,path,tool_download=None):
 			download.append(list_files[item])
 			call(download) #call subprocess
 		else:
-			downloader = BasicDownload(link_song[item],list_files[item]) # call basic_download
+			# call basic_download
+			downloader = BasicDownload(link_song[item],list_files[item])
 			downloader.startDownload()
 
 def usage():
@@ -398,7 +400,8 @@ def main():
 	extract = ''
 	quality = None #use for youtube
 	try:
-		opts,args = getopt.getopt(sys.argv[1:],'t:l:s:e:q:vh',['tool','link','save','quality','extract','version','help'])
+		opts,args = getopt.getopt(sys.argv[1:],'t:l:s:e:q:vh',
+			['tool','link','save','quality','extract','version','help'])
 	except getopt.GetoptError as err:
 		usage()
 		print str(err)
@@ -498,7 +501,9 @@ def main():
 				print 'Downloading %s......' % l
 				if not flag:#check if host is Youtube and not set option quality
 					if not quality:
-						print '\t[+] '+link[0]+':'+link[1]
+						print 'Videos quality:'
+						for link in link_song:
+							print '\t[+] '+link[0]+':'+link[1]
 						print 'Try : %s -l %s -q type:quality -s <path>' % (sys.argv[0],l)
 						exit(0)
 				if(link_song): #if link is get, download link and save to file
