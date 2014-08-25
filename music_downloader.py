@@ -11,7 +11,7 @@
 # along with Music_Downloader.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = "Peter Nguyen"
-__version__ = "3.1.4"
+__version__ = "3.1.5"
 
 import urllib2,urlparse
 import re,time,random
@@ -85,8 +85,8 @@ class BasicDownload:
 		except urllib2.URLError, e:
 			print '[!] HTTP Error : ', e.code
 			return 0
-		finally:
-			n.close()
+		# finally:
+			# print '[DEBUG] ',self.url
 		return 1
 	# show ProcessBar
 	def show_process(self,proc_name,bytes_write,file_len):
@@ -258,51 +258,63 @@ class NhacCuaTui:
 	def __init__(self,url):
 		self.list_files = []
 		self.link_song = []
-		
-		self.xml_link = 'http://www.nhaccuatui.com/flash/xml'
-		
-		data = urllib2.urlopen(url).read()
-		key = re.findall(r'NCTNowPlaying\.intFlashPlayer\(\"flashPlayer\", \"(song|playlist)\", \"(.+?)\"',data)
-		try:
-			if key[0][0] == 'playlist':
-				self.xml_link += '?key2='+key[0][1] #get playlist
-			elif key[0][0] == 'song':
-				self.xml_link += '?key1='+key[0][1] #get song
-			else:
-				print '[?] Not Match Key'
-		except IndexError:
-			print '[?] Not Found Direct Link'
-			sys.exit(1)
-	  
+		self.xml_link = ''
+		self.url = url
+
+		if 'video' not in url:
+			# get music links from url
+			self.xml_link = 'http://www.nhaccuatui.com/flash/xml'
+			data = urllib2.urlopen(url).read()
+			key = re.findall(r'NCTNowPlaying\.intFlashPlayer\(\"flashPlayer\", \"(song|playlist)\", \"(.+?)\"',data)
+			try:
+				if key[0][0] == 'playlist':
+					self.xml_link += '?key2='+key[0][1] #get playlist
+				elif key[0][0] == 'song':
+					self.xml_link += '?key1='+key[0][1] #get song
+				else:
+					print '[?] Not Match Key'
+			except IndexError:
+				print '[?] Not Found Direct Link'
+				sys.exit(1)
+		# get videos from url
+		# re.findall(r'\<meta itemprop=\"contentURL\" content=\"(.+?)\" \/\>',d)
+
 	def xml_get_data(self):
 		'''
 			- Parse key1 value from webpage
 			- Read xmlFile and parse sytax
 			- Get Data From xmlFile
 		'''
-		try:
-			name_song = []
-			artist_name = []
-			result = urllib2.urlopen(self.xml_link)
-			xml = ET.parse(result) #parse xml
-			
-			for node in xml.findall('track'): #find all node track
-				self.link_song.append(node.find('location').text)
-				name_song.append(node.find('title').text)
-				artist_name.append(node.find('creator').text)
-			
-			for i in xrange(len(self.link_song)):
-				name_song[i] = name_song[i].strip(' \r\t\n')
-				artist_name[i] = artist_name[i].strip(' \r\t\n')
-				ext = self.link_song[i][self.link_song[i].rfind('.'):len(self.link_song[i])]
-				fullname = name_song[i] + ' - ' + artist_name[i] + ext
-				self.list_files.append(fullname.strip(' \r\t\n'))
-		except urllib2.HTTPError:
-			print '[!] HTTP Connect Error, Please Check Connection'
-			sys.exit(1)
-		except urllib2.URLError, e:
-			print '[!] HTTP Error : ', e.code
-			sys.exit(1)
+		if self.xml_link:
+			try:
+				name_song = []
+				artist_name = []
+				result = urllib2.urlopen(self.xml_link)
+				xml = ET.parse(result) #parse xml
+				
+				for node in xml.findall('track'): #find all node track
+					self.link_song.append(node.find('location').text)
+					name_song.append(node.find('title').text)
+					artist_name.append(node.find('creator').text)
+				
+				for i in xrange(len(self.link_song)):
+					name_song[i] = name_song[i].strip(' \r\t\n')
+					artist_name[i] = artist_name[i].strip(' \r\t\n')
+					ext = self.link_song[i][self.link_song[i].rfind('.'):len(self.link_song[i])]
+					fullname = name_song[i] + ' - ' + artist_name[i] + ext
+					self.list_files.append(fullname.strip(' \r\t\n'))
+			except urllib2.HTTPError:
+				print '[!] HTTP Connect Error, Please Check Connection'
+				sys.exit(1)
+			except urllib2.URLError, e:
+				print '[!] HTTP Error : ', e.code
+				sys.exit(1)
+		else:
+			# getting video from nhaccuatui.com
+			d = urllib2.urlopen(self.url).read()
+			self.link_song = re.findall(r'\<meta itemprop=\"contentURL\" content=\"(.+?)\" \/\>',d)
+			# video link has only one link
+			self.list_files.append(os.path.basename(self.link_song[0]))
 
 class NhacSo:
 	def __init__(self,url):
