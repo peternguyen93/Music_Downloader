@@ -4,7 +4,7 @@ Music_Downloader
 Music Downloader
 
 Author: peternguyen
-Version: 3.1.5
+Version: 3.2
 
 License: GNU General Public License <http://www.gnu.org/licenses/>
 
@@ -13,6 +13,7 @@ Site Music Support:
 - nhaccuatui
 - nhacso.net
 - youtube.com
+- tv.zing.vn
 
 Function:
 - Support download more than 1 files
@@ -22,6 +23,7 @@ Function:
 - Recommend use axel or curl to download video from youtube.com
 - Work on Windows, not support wget,curl,axel on windows, you can't only use basic downloader
 - Support download video from nhaccuatui.com
+- Support get link from http://tv.zing.vn
 
 Example:
 - ex:
