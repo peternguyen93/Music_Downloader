@@ -11,7 +11,7 @@
 # along with Music_Downloader.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = "Peter Nguyen"
-__version__ = "3.1.5"
+__version__ = "3.2"
 
 import urllib2,urlparse
 import re,time,random
@@ -354,6 +354,35 @@ class NhacSo:
 		except urllib2.URLError, e:
 			print '[!] HTTP Error : ', e.code
 			sys.exit(1)
+
+# http://tv.zing.vn module
+class ZingTV:
+	def __init__(self,url):
+		self.list_files = []
+		self.link_song = []
+
+		web_page = urllib2.urlopen(url).read()
+		# get xml file
+		self.xml_link = re.findall(r'xmlURL: \"(.*)\"',web_page)[0]
+		# get html5 link
+		self.html5_link = re.findall(r'\<source src=\"(.*)\" type="video/mp4',web_page)[0]
+
+	def xml_get_data(self):
+		if self.html5_link and self.xml_link:
+			original_link = urllib2.urlopen(self.html5_link).geturl()
+			# default get f480 video
+			self.link_song.append(original_link.replace('f360','f480'))
+			xml = urllib2.urlopen(self.xml_link)
+			decompress = zlib.decompress(xml.read(),16+zlib.MAX_WBITS)
+			#decompress string object as file object
+			xml = StringIO.StringIO(decompress)
+			xml_parse = ET.parse(xml)
+			fn = [obj.text for obj in xml_parse.findall('.//title')][0]
+			fn += ' - ' + [obj.text for obj in xml_parse.findall('.//performer')][0]
+			self.list_files.append(fn)
+		else:
+			print '[!] Error while parsing link'
+			sys.exit
   
 def downloader(link_song,list_files,path,tool_download=None):
 	if not os.path.isdir(path):
@@ -488,8 +517,10 @@ def main():
 					extension = None
 					q = None
 				video = YouTube(l,q,extension)
+			elif host == 'tv.zing.vn':
+				music_site = ZingTV(l)
 			else:
-				print 'This program support mp3.zing.vn,nhaccuatui.com,nhacso.net,youtube.com'
+				print 'This program support mp3.zing.vn,nhaccuatui.com,nhacso.net,youtube.com,tv.zing.vn'
 				sys.exit(0)
 			#if url is in music_site list
 			if music_site:
