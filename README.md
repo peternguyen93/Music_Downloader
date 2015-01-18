@@ -4,7 +4,7 @@ Music_Downloader
 Music Downloader
 
 Author: peternguyen
-Version: 3.2
+Version: 3.2.2
 
 License: GNU General Public License <http://www.gnu.org/licenses/>
 
