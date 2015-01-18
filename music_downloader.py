@@ -1,5 +1,5 @@
-#!/usr/bin/python
-# -*- encoding: utf-8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # Copyright (c) 2013- PeterNguyen <https://github.com/peternguyen93>
 #
 # Music_Downloader is distributed in the hope that it will be useful,
@@ -11,7 +11,7 @@
 # along with Music_Downloader.  If not, see <http://www.gnu.org/licenses/>.
 
 __author__ = "Peter Nguyen"
-__version__ = "3.2"
+__version__ = "3.2.2"
 
 import urllib2,urlparse
 import re,time,random
@@ -32,7 +32,7 @@ hdrs = {
 	'Connection': 'keep-alive'
 }
 #define path_symbol
-if platform.system() == 'Linux':
+if platform.system() == 'Linux' or platform.system() == 'Darwin':
 	path_symbol = '/'
 elif platform.system() == 'Windows':
 	path_symbol = '\\'
@@ -51,8 +51,9 @@ class BasicDownload:
 		'''
 		
 		try:
-			req = urllib2.Request(self.url, headers=hdrs)
-			n = urllib2.urlopen(req)
+			print self.url
+			# req = urllib2.Request(self.url, headers=hdrs)
+			n = urllib2.urlopen(self.url)
 			file_len = int(n.info().getheaders('content-length')[0]) #get file size
 			file_type = n.info().getheaders('content-type')[0] #get file type
 			file_type = file_type[len(file_type)-3:len(file_type)]
@@ -79,7 +80,7 @@ class BasicDownload:
 			else:
 				print '\n--> [?] Error Download File!'
 			fw.close()
-		except urllib2.HTTPError:
+		except urllib2.HTTPError, err:
 			print '[!] HTTP Connect Error, Please Check Connection'
 			return 0
 		except urllib2.URLError, e:
@@ -106,7 +107,7 @@ class BasicDownload:
 			else:#end processBar
 				end_str = '] 100%|Done'
 			output+=end_str
-			sys.stdout.write(output)
+			sys.stdout.write(output.encode('utf-8'))
 		sys.stdout.flush()
 	
 	def show_size(self,size):
@@ -397,9 +398,9 @@ def downloader(link_song,list_files,path,tool_download=None):
 		path += path_symbol
 	for item in xrange(len(list_files)):
 		list_files[item] = path + list_files[item]
-	
+
 	for item in range(len(link_song)):
-		print '-> Saving to : ' + list_files[item]
+		print '-> Saving to : ' + list_files[item].encode('utf-8')
 		if (tool_download):
 			download = [tool_download]
 			download.append(link_song[item])
