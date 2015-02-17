@@ -24,8 +24,7 @@ import StringIO
 '''Define header http to request data from server'''
 hdrs = {
 	'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-	'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) \
-	Chrome/29.0.1547.76 Safari/537.36',
+	'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.76 Safari/537.36',
 	'Accept-Language':'en-US,en;q=0.5',
 	'Cache-Control': 'max-age=0',
 	'Accept-Encoding': 'gzip, deflate, sdch',
@@ -51,7 +50,6 @@ class BasicDownload:
 		'''
 		
 		try:
-			print self.url
 			# req = urllib2.Request(self.url, headers=hdrs)
 			n = urllib2.urlopen(self.url)
 			file_len = int(n.info().getheaders('content-length')[0]) #get file size
@@ -400,7 +398,10 @@ def downloader(link_song,list_files,path,tool_download=None):
 		list_files[item] = path + list_files[item]
 
 	for item in range(len(link_song)):
-		print '-> Saving to : ' + list_files[item].encode('utf-8')
+		try: # fix unicode decode error
+			print u'-> Saving to : ' + list_files[item]
+		except UnicodeDecodeError:
+			print '-> Saving to : ' + path
 		if (tool_download):
 			download = [tool_download]
 			download.append(link_song[item])
