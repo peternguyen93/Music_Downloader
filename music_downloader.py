@@ -398,10 +398,7 @@ def downloader(link_song,list_files,path,tool_download=None):
 		list_files[item] = path + list_files[item]
 
 	for item in range(len(link_song)):
-		try: # fix unicode decode error
-			print u'-> Saving to : ' + list_files[item]
-		except UnicodeDecodeError:
-			print '-> Saving to : ' + path
+		print '-> Saving to : '.encode('utf-8') + list_files[item]
 		if (tool_download):
 			download = [tool_download]
 			download.append(link_song[item])
